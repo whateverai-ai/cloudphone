@@ -1,0 +1,40 @@
+{
+  "id": "cloudphone",
+  "name": "CloudPhone Plugin",
+  "version": "0.0.1",
+  "description": "OpenClaw CloudPhone 插件 —— 提供云手机 OpenAPI（用户、设备管理、UI交互）Agent 工具能力",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "baseUrl": {
+        "type": "string",
+        "description": "CloudPhone API 基础地址（不包含 /openapi/v1）",
+        "default": "https://cptest.yaltc.cn"
+      },
+      "apikey": {
+        "type": "string",
+        "description": "Authorization 鉴权凭证（ApiKey）"
+      },
+      "timeout": {
+        "type": "number",
+        "description": "请求超时时间（毫秒）",
+        "default": 5000
+      }
+    }
+  },
+  "uiHints": {
+    "baseUrl": {
+      "label": "API 基础地址",
+      "placeholder": "https://cptest.yaltc.cn（不含 /openapi/v1）"
+    },
+    "apikey": {
+      "label": "Authorization / ApiKey",
+      "placeholder": "输入 Authorization 值（如 AiApiKey）",
+      "sensitive": true
+    },
+    "timeout": {
+      "label": "请求超时（ms）"
+    }
+  }
+}

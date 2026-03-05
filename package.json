@@ -1,0 +1,28 @@
+{
+  "name": "@suqiai/cloudphone",
+  "version": "0.0.1",
+  "description": "OpenClaw CloudPhone 插件 —— 提供自定义 Agent 工具能力",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "openclaw.plugin.json"
+  ],
+  "keywords": [
+    "openclaw",
+    "plugin",
+    "cloudphone"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rimraf dist"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "rimraf": "^5.0.0"
+  },
+  "openclaw": {
+    "extensions": ["./dist/index.js"]
+  }
+}
