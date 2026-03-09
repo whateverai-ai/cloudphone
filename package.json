@@ -1,6 +1,6 @@
 {
   "name": "@suqiai/cloudphone",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "license": "MIT",
   "description": "OpenClaw 云手机插件 —— 让 AI Agent 具备云手机的设备管理与 UI 自动化操控能力，通过对话即可完成云手机的查询、开关机、截图、点击、滑动、输入等操作，无需手动编写脚本。",
   "main": "dist/index.js",
