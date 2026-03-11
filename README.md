@@ -4,6 +4,8 @@ OpenClaw 云手机插件 —— 让 AI Agent 具备云手机的设备管理与 U
 
 通过对话即可完成云手机的查询、开关机、截图、点击、滑动、输入等操作，无需手动编写脚本。
 
+从 `v0.0.10` 开始，插件会一并发布内置 skill `openclaw-cloudphone`，用于教 Agent 更稳定地组合使用这些工具。
+
 ## 快速开始
 
 ### 1. 安装插件
@@ -38,7 +40,57 @@ openclaw plugins install @suqiai/cloudphone
 openclaw gateway restart
 ```
 
-插件加载成功后，Agent 即可使用全部云手机工具。
+插件加载成功后，Agent 即可使用全部云手机工具；若插件启用成功，随包发布的 `openclaw-cloudphone` skill 也会一并生效。
+
+## 插件与 Skill 的关系
+
+这个仓库首先是一个 **OpenClaw 插件**，职责是把云手机 OpenAPI 暴露为 Agent 可调用的工具。
+
+从 `v0.0.10` 开始，仓库还会随包发布一个 **OpenClaw Skill**：
+
+- 插件：解决“**能做什么**”，提供 `cloudphone_*` 工具
+- skill：解决“**怎样更稳地做**”，教 Agent 何时调用工具、如何按顺序调用、失败后如何恢复
+
+两者配合后的效果是：
+
+- 插件负责设备管理、UI 交互、截图观察等底层能力
+- skill 负责把这些能力串成稳定的操作闭环
+
+## 内置 Skill
+
+插件内置了 `openclaw-cloudphone` skill，目录位于：
+
+```text
+skills/openclaw-cloudphone/
+```
+
+其中包含：
+
+- `SKILL.md`：主说明，定义适用场景、标准流程、恢复策略和能力边界
+- `reference.md`：14 个工具的参数速查表
+
+该 skill 不需要额外安装脚本，也不会新增新的 API 能力。它只会帮助 Agent 更合理地使用已有工具。
+
+### Skill 解决什么问题
+
+`openclaw-cloudphone` 主要解决以下问题：
+
+- 安装与排障：检查 `openclaw.json`、`baseUrl`、`apikey`、`timeout`
+- 标准流程：选设备 -> 确认在线 -> 截图观察 -> 执行动作 -> 再次验证
+- UI 自动化稳定性：采用“观察 -> 行动 -> 验证 -> 再观察”的短闭环
+- 恢复策略：优先 `BACK`、`HOME`、重新截图，必要时重启设备
+
+### Skill 的能力边界
+
+当前 skill 是建立在现有插件工具集上的，因此它不会自动补齐下面这些高层能力：
+
+- OCR
+- 按文本找控件
+- 按 selector 直接点击控件
+- 指定包名启动 App
+- 复杂宏录制与回放
+
+如果你需要这些能力，应继续扩展插件，而不是只改 skill。
 
 ## 配置说明
 
@@ -103,7 +155,7 @@ Agent 会依次调用 `cloudphone_device_power`（开机）→ `cloudphone_snaps
 
 > 在云手机上打开微信，搜索"OpenClaw"公众号并关注
 
-Agent 会自动规划操作步骤，通过截图观察屏幕、点击图标、输入文字、滑动页面等一系列工具组合完成任务。
+Agent 会结合插件工具和内置 skill 自动规划操作步骤，通过“先观察、再操作、再验证”的方式完成截图观察、点击图标、输入文字、滑动页面等动作。
 
 ### 设备调试
 
@@ -200,6 +252,10 @@ image_url : string — HTTPS 图片地址（必填）
 
 确认 `openclaw.json` 中 `plugins.entries.cloudphone.enabled` 设置为 `true`，并已重启 Gateway。
 
+**Q: 工具能用，但 Agent 不太会稳定操作云手机 UI？**
+
+从 `v0.0.10` 开始，插件会随包发布 `openclaw-cloudphone` skill。它会教 Agent 按“观察 -> 行动 -> 验证 -> 再观察”的闭环使用工具。请确认当前安装的是新版本，并已重新启动 Gateway 让最新 skill 被加载。
+
 **Q: 调用工具报 "请求失败" 或超时？**
 
 - 检查 `baseUrl` 是否正确（不要包含 `/openapi/v1` 后缀）
@@ -216,7 +272,13 @@ Agent 会自动调用 `cloudphone_render_image` 将 URL 转为可展示的图片
 
 ## 更新日志
 
-当前版本：**v0.0.8**
+当前版本：**v0.0.10**
+
+### v0.0.10
+
+- 新增随插件发布的内置 skill：`openclaw-cloudphone`
+- 新增 `reference.md` 参数速查表
+- 文档补充插件与 skill 的职责分工、标准流程和边界说明
 
 ## 许可证
 
