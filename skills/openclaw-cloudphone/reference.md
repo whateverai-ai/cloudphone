@@ -145,8 +145,9 @@ The source of truth for parameters and descriptions is `src/tools.ts`.
 - Required parameters:
 - `image_url`: `string`, HTTPS image URL
 - Returns:
-- one `MEDIA:<filePath>` text item for the host to display the image
-- one JSON text item containing `ok`, `filePath`, `url`, and `size`
+- one Markdown image text item using a `data:image/...;base64,...` URL for direct chat rendering
+- one fallback `MEDIA:<filePath>` text item for hosts that still rely on the legacy media marker
+- one JSON text item containing `ok`, `filePath`, `url`, `mimeType`, `size`, and `renderMode`
 - Typical use: turn a screenshot URL returned by `cloudphone_snapshot` into a visible image
 - Note: if the URL is unreachable or does not return an image, the tool returns a failure message
 

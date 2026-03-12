@@ -58,7 +58,7 @@ Check these configuration items first:
 - `401` or authorization failure: `apikey` is usually invalid, expired, or missing.
 - `404`: `baseUrl` is usually incorrect, most often because `/openapi/v1` was included.
 - `timeout`, `AbortError`, or request timeout: usually caused by network conditions or a timeout value that is too small.
-- Image cannot be displayed: first confirm that `cloudphone_snapshot` was called, then pass the returned screenshot URL to `cloudphone_render_image`.
+- Image cannot be displayed: first confirm that `cloudphone_snapshot` was called, then pass the returned screenshot URL to `cloudphone_render_image`. The tool now returns a Markdown data URL image first and keeps a legacy `MEDIA:<filePath>` fallback, so if nothing is shown, check whether the current UI supports Markdown image rendering.
 
 ### Troubleshooting Principles
 

@@ -6,7 +6,7 @@ OpenClaw 云手机插件，让 AI Agent 具备云手机的设备管理与 UI 自
 
 通过自然语言对话即可完成云手机的查询、开关机、截图、点击、滑动、输入等操作，无需手动编写脚本。
 
-从 `v0.0.11` 开始，插件会一并发布内置 skill `openclaw-cloudphone`，用于教 Agent 更稳定地组合使用这些工具。
+从 `v0.0.12` 开始，插件会一并发布内置 skill `openclaw-cloudphone`，用于教 Agent 更稳定地组合使用这些工具。
 
 ## 快速开始
 
@@ -54,7 +54,7 @@ openclaw gateway restart
 
 这个仓库首先是一个 **OpenClaw 插件**，职责是把云手机 OpenAPI 暴露为 Agent 可调用的工具。
 
-从 `v0.0.11` 开始，仓库还会随包发布一个 **OpenClaw Skill**：
+从 `v0.0.12` 开始，仓库还会随包发布一个 **OpenClaw Skill**：
 
 - 插件：解决“能做什么”，提供 `cloudphone_*` 工具
 - skill：解决“怎样更稳地做”，教 Agent 何时调用工具、如何按顺序调用、失败后如何恢复
@@ -262,7 +262,7 @@ image_url : string - HTTPS 图片地址（必填）
 
 **Q: 工具能用，但 Agent 不太会稳定操作云手机 UI？**
 
-从 `v0.0.11` 开始，插件会随包发布 `openclaw-cloudphone` skill。它会教 Agent 按“观察 -> 行动 -> 验证 -> 再观察”的闭环使用工具。请确认当前安装的是较新版本，并已重启 Gateway 让最新 skill 被加载。
+从 `v0.0.12` 开始，插件会随包发布 `openclaw-cloudphone` skill。它会教 Agent 按“观察 -> 行动 -> 验证 -> 再观察”的闭环使用工具。请确认当前安装的是较新版本，并已重启 Gateway 让最新 skill 被加载。
 
 **Q: 调用工具报请求失败或超时？**
 
@@ -276,13 +276,13 @@ image_url : string - HTTPS 图片地址（必填）
 
 **Q: `cloudphone_snapshot` 返回了 URL，但对话中看不到图片？**
 
-Agent 应该会自动调用 `cloudphone_render_image` 将该 URL 转成可展示的图片。如果没有自动展示，可以手动要求 Agent 展示截图。
+Agent 应该会自动调用 `cloudphone_render_image` 将该 URL 转成可展示的图片。当前版本会优先返回 Markdown `data:image/...;base64,...` 图片文本，并附带兼容旧宿主的 `MEDIA:<filePath>` 文本。如果仍未展示，可以手动要求 Agent 展示截图，或检查当前 UI 是否支持 Markdown 图片渲染。
 
 ## 更新日志
 
-当前版本：**v0.0.11**
+当前版本：**v0.0.12**
 
-### v0.0.11
+### v0.0.12
 
 - 新增随插件发布的内置 skill：`openclaw-cloudphone`
 - 新增 `reference.md` 参数速查表

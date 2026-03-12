@@ -484,9 +484,12 @@ const renderImageTool: ToolDefinition = {
       await mkdir(dir, { recursive: true });
       const filePath = join(dir, `${hash}${ext}`);
       await writeFile(filePath, buf);
+      const dataUrl = `data:${mimeType};base64,${buf.toString("base64")}`;
+      const markdownImage = `![cloudphone screenshot](${dataUrl})`;
 
       return {
         content: [
+          { type: "text" as const, text: markdownImage },
           { type: "text" as const, text: `MEDIA:${filePath}` },
           {
             type: "text" as const,
@@ -494,7 +497,9 @@ const renderImageTool: ToolDefinition = {
               ok: true,
               filePath,
               url: imageUrl,
+              mimeType,
               size: buf.length,
+              renderMode: "markdown_data_url",
             }),
           },
         ],
