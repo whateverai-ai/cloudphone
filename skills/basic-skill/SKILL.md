@@ -1,5 +1,5 @@
 ---
-name: openclaw-cloudphone
+name: basic-skill
 description: Cloud phone device management and UI automation. Use it to inspect and manage cloud phone devices, capture screenshots, perform taps, swipes, and text input, handle power actions, retrieve ADB connection details, and complete multi-step UI automation tasks with a safer workflow.
 metadata:
   openclaw:
@@ -8,7 +8,7 @@ metadata:
         - plugins.entries.cloudphone.enabled
 ---
 
-# OpenClaw CloudPhone
+# Basic Skill
 
 This skill is intended for OpenClaw agents that already have the `cloudphone` plugin installed and enabled.
 
@@ -58,13 +58,13 @@ Check these configuration items first:
 - `401` or authorization failure: `apikey` is usually invalid, expired, or missing.
 - `404`: `baseUrl` is usually incorrect, most often because `/openapi/v1` was included.
 - `timeout`, `AbortError`, or request timeout: usually caused by network conditions or a timeout value that is too small.
-- Image cannot be displayed: first confirm that `cloudphone_snapshot` was called, then pass the returned screenshot URL to `cloudphone_render_image`. The tool now returns a Markdown data URL image first and keeps a legacy `MEDIA:<filePath>` fallback, so if nothing is shown, check whether the current UI supports Markdown image rendering.
+- Image cannot be displayed: first confirm that `cloudphone_snapshot` was called, then pass the returned screenshot URL to `cloudphone_render_image`. The tool now returns an MCP `image` content item first and keeps a legacy `MEDIA:<filePath>` fallback, so if nothing is shown, check whether the current UI consumes `type: "image"` tool output.
 
 ### Troubleshooting Principles
 
 - Verify config first, then network, then timeout settings.
 - Do not assume the config is still correct. Even if the user says it worked yesterday, re-check the key and URL.
-- When a request fails, explain the failure type and next recovery step instead of repeating the raw error only.
+- When a request fails, explain the failure type and the recovery suggestion instead of repeating the raw error only.
 
 ## Tool Groups
 

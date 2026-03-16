@@ -6,7 +6,7 @@ OpenClaw CloudPhone is a plugin that gives AI agents device management and UI au
 
 With natural language instructions, an agent can list devices, power them on or off, capture screenshots, tap, swipe, type text, and perform other UI actions without writing manual scripts.
 
-Starting from `v0.0.12`, the package also ships with a built-in skill, `openclaw-cloudphone`, which helps agents combine these tools in a more reliable way.
+Starting from `v1.0.1`, the package also ships with a built-in skill, `basic-skill`, which helps agents combine these tools in a more reliable way.
 
 ## Quick Start
 
@@ -48,13 +48,13 @@ Add the following configuration to `openclaw.json`:
 openclaw gateway restart
 ```
 
-Once the plugin is loaded successfully, the agent can use all CloudPhone tools. If the plugin is enabled correctly, the bundled `openclaw-cloudphone` skill will also become available.
+Once the plugin is loaded successfully, the agent can use all CloudPhone tools. If the plugin is enabled correctly, the bundled `basic-skill` skill will also become available.
 
 ## How the Plugin and Skill Work Together
 
 This repository is first and foremost an **OpenClaw plugin**. Its job is to expose the CloudPhone OpenAPI as tools that an agent can call.
 
-Starting from `v0.0.12`, the package also includes an **OpenClaw skill**:
+Starting from `v1.0.1`, the package also includes an **OpenClaw skill**:
 
 - Plugin: defines **what the agent can do** by providing `cloudphone_*` tools
 - Skill: defines **how the agent should do it reliably** by teaching call order, recovery steps, and safer workflows
@@ -66,10 +66,10 @@ Together they form a complete automation loop:
 
 ## Built-in Skill
 
-The package includes the `openclaw-cloudphone` skill under:
+The package includes the `basic-skill` skill under:
 
 ```text
-skills/openclaw-cloudphone/
+skills/basic-skill/
 ```
 
 It contains:
@@ -81,7 +81,7 @@ The skill does not add new API capabilities and does not require an extra instal
 
 ### What the Skill Solves
 
-`openclaw-cloudphone` mainly improves the following areas:
+`basic-skill` mainly improves the following areas:
 
 - Installation and troubleshooting: checking `openclaw.json`, `baseUrl`, `apikey`, and `timeout`
 - Standard workflow: select device -> confirm online -> observe -> act -> verify
@@ -112,7 +112,7 @@ If you need those capabilities, extend the plugin itself instead of changing onl
 
 ## Tool Overview
 
-After the plugin is installed, the agent automatically gets the following tools.
+After the plugin is installed, the agent automatically gets the following capabilities.
 
 ### User and device management
 
@@ -262,7 +262,7 @@ Make sure `plugins.entries.cloudphone.enabled` is set to `true` in `openclaw.jso
 
 **Q: The tools work, but the agent is not very stable when operating a cloud phone UI.**
 
-Starting from `v0.0.12`, the package ships with the `openclaw-cloudphone` skill. It teaches the agent to use the tools in a short loop: observe -> act -> verify -> observe again. Make sure you installed a recent version and restarted the Gateway so the latest skill was loaded.
+Starting from `v1.0.1`, the package ships with the `basic-skill` skill. It teaches the agent to use the tools in a short loop: observe -> act -> verify -> observe again. Make sure you installed a recent version and restarted the Gateway so the latest skill was loaded.
 
 **Q: A tool call fails with a request error or timeout.**
 
@@ -276,15 +276,15 @@ Create or view it from the API key page in the CloudPhone management console.
 
 **Q: `cloudphone_snapshot` returned a URL, but I cannot see the image in chat.**
 
-The agent should call `cloudphone_render_image` automatically to turn that URL into a displayable image. The current version returns a Markdown `data:image/...;base64,...` image first and also keeps a fallback `MEDIA:<filePath>` text item for older hosts. If the image still does not appear, ask the agent to show the screenshot explicitly or verify that the current UI supports Markdown image rendering.
+The agent should call `cloudphone_render_image` automatically to turn that URL into a displayable image. The current version returns an MCP `image` content block first and also keeps a fallback `MEDIA:<filePath>` text item for older hosts. If the image still does not appear, ask the agent to show the screenshot explicitly; if that still fails, the current host likely does not consume `type: "image"` content items yet.
 
 ## Changelog
 
-Current version: **v0.0.12**
+Current version: **v1.0.1**
 
-### v0.0.12
+### v1.0.1
 
-- Added the built-in `openclaw-cloudphone` skill distributed with the plugin
+- Added the built-in `basic-skill` skill distributed with the plugin
 - Added `reference.md` as a tool parameter quick reference
 - Expanded the documentation for plugin vs. skill responsibilities, standard workflows, and capability boundaries
 

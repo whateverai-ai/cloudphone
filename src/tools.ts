@@ -59,6 +59,26 @@ function toJsonText(value: unknown): McpToolResult {
   return { content: [{ type: "text", text: JSON.stringify(value) }] };
 }
 
+function isSuccessfulApiResponse(body: Record<string, unknown>): boolean {
+  if (body.success === true) {
+    return true;
+  }
+
+  return body.code === 1 || body.code === "1" || body.code === 200 || body.code === "200";
+}
+
+function getApiErrorMessage(body: Record<string, unknown>): string {
+  if (typeof body.message === "string" && body.message.trim()) {
+    return body.message;
+  }
+
+  if (typeof body.data === "string" && body.data.trim()) {
+    return body.data;
+  }
+
+  return "Unknown error";
+}
+
 async function apiRequest(
   method: "GET" | "POST",
   path: string,
@@ -100,14 +120,14 @@ async function apiRequest(
 
     const body = (await response.json()) as Record<string, unknown>;
 
-    if (typeof body === "object" && body !== null && "code" in body) {
-      if (body.code === 200) {
+    if (typeof body === "object" && body !== null && ("code" in body || "success" in body)) {
+      if (isSuccessfulApiResponse(body)) {
         return toJsonText(body.data ?? body);
       }
       return toJsonText({
         ok: false,
         code: body.code,
-        message: body.data ?? "Unknown error",
+        message: getApiErrorMessage(body),
       });
     }
 
@@ -484,24 +504,11 @@ const renderImageTool: ToolDefinition = {
       await mkdir(dir, { recursive: true });
       const filePath = join(dir, `${hash}${ext}`);
       await writeFile(filePath, buf);
-      const dataUrl = `data:${mimeType};base64,${buf.toString("base64")}`;
-      const markdownImage = `![cloudphone screenshot](${dataUrl})`;
 
       return {
         content: [
-          { type: "text" as const, text: markdownImage },
+          // { type: "image" as const, data: buf.toString("base64"), mimeType },
           { type: "text" as const, text: `MEDIA:${filePath}` },
-          {
-            type: "text" as const,
-            text: JSON.stringify({
-              ok: true,
-              filePath,
-              url: imageUrl,
-              mimeType,
-              size: buf.length,
-              renderMode: "markdown_data_url",
-            }),
-          },
         ],
       };
     } catch (err) {

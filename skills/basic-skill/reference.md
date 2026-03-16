@@ -1,6 +1,6 @@
 # CloudPhone Tool Reference
 
-This file is the parameter quick reference for the `openclaw-cloudphone` skill. It only describes the 14 tools currently provided by the plugin.
+This file is the parameter quick reference for the `basic-skill` skill. It only describes the 14 tools currently provided by the plugin.
 
 The source of truth for parameters and descriptions is `src/tools.ts`.
 
@@ -145,7 +145,7 @@ The source of truth for parameters and descriptions is `src/tools.ts`.
 - Required parameters:
 - `image_url`: `string`, HTTPS image URL
 - Returns:
-- one Markdown image text item using a `data:image/...;base64,...` URL for direct chat rendering
+- one MCP `image` content item with base64 `data` and `mimeType` for direct chat rendering
 - one fallback `MEDIA:<filePath>` text item for hosts that still rely on the legacy media marker
 - one JSON text item containing `ok`, `filePath`, `url`, `mimeType`, `size`, and `renderMode`
 - Typical use: turn a screenshot URL returned by `cloudphone_snapshot` into a visible image

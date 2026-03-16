@@ -1,6 +1,6 @@
 {
   "name": "@suqiai/cloudphone",
-  "version": "0.0.12",
+  "version": "1.0.1",
   "license": "MIT",
   "description": "OpenClaw CloudPhone plugin that gives AI agents cloud device management and UI automation capabilities through natural language, including device queries, power actions, screenshots, taps, swipes, and text input.",
   "main": "dist/index.js",

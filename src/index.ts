@@ -31,6 +31,20 @@ function resolveConfig(api: PluginApi): CloudphonePluginConfig {
   return api.config?.plugins?.entries?.["cloudphone"]?.config ?? {};
 }
 
+function summarizeToolResult(result: McpToolResult): string {
+  return JSON.stringify({
+    content: result.content.map((item) =>
+      item.type === "image"
+        ? {
+            type: item.type,
+            mimeType: item.mimeType,
+            dataBytes: item.data.length,
+          }
+        : item
+    ),
+  });
+}
+
 const plugin = {
   id: "cloudphone",
 
@@ -56,7 +70,7 @@ const plugin = {
   register(api: PluginApi) {
     const config = resolveConfig(api);
     // Log only config presence and non-sensitive values. Never print secrets.
-    api.logger.info(
+    console.log(
       `[cloudphone] register input: config=${JSON.stringify({
         baseUrl: config.baseUrl ?? "(not configured)",
         timeout: config.timeout,
@@ -64,7 +78,7 @@ const plugin = {
       })}`
     );
     setConfig(config);
-    api.logger.info(
+    console.log(
       `[cloudphone] plugin loaded, version=${version}, baseUrl=${config.baseUrl ?? "(not configured, using default)"}`
     );
 
@@ -74,13 +88,13 @@ const plugin = {
         description: tool.description,
         parameters: tool.parameters,
         execute: async (id, params) => {
-          api.logger.info(
+          console.log(
             `[cloudphone] tool ${tool.name} started, id=${id}, params=${JSON.stringify(params)}`
           );
           try {
             const result = await tool.execute(id, params);
-            api.logger.info(
-              `[cloudphone] tool ${tool.name} result: ${JSON.stringify(result)}`
+            console.log(
+              `[cloudphone] tool ${tool.name} result: ${summarizeToolResult(result)}`
             );
             if (
               result &&
@@ -102,7 +116,7 @@ const plugin = {
           } catch (err) {
             const message =
               err instanceof Error ? err.message : String(err);
-            api.logger.error(
+            console.error(
               `[cloudphone] tool ${tool.name} failed: ${message}`
             );
             return {
@@ -116,7 +130,7 @@ const plugin = {
           }
         },
       });
-      api.logger.info(`[cloudphone] registered tool: ${tool.name}`);
+      console.log(`[cloudphone] registered tool: ${tool.name}`);
     }
   },
 };
