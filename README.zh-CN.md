@@ -104,7 +104,7 @@ skills/basic-skill/
 
 | 字段 | 类型 | 必填 | 默认值 | 说明 |
 |------|------|------|--------|------|
-| `baseUrl` | string | 否 | `https://cptest.yaltc.cn` | 云手机 API 基础地址（不含 `/openapi/v1`） |
+| `baseUrl` | string | 否 | `https://whateverai.ai/ai` | 云手机 API 基础地址（不含 `/openapi/v1`） |
 | `apikey` | string | 是 | — | Authorization 鉴权凭证（ApiKey） |
 | `timeout` | number | 否 | `5000` | 请求超时时间（毫秒） |
 

@@ -33,7 +33,7 @@ Add the following configuration to `openclaw.json`:
       "cloudphone": {
         "enabled": true,
         "config": {
-          "baseUrl": "https://your-cloudphone-api.com",
+          "baseUrl": "https://whateverai.ai/ai",
           "apikey": "your-api-key"
         }
       }
@@ -104,7 +104,7 @@ If you need those capabilities, extend the plugin itself instead of changing onl
 
 | Field | Type | Required | Default | Description |
 |------|------|------|--------|------|
-| `baseUrl` | string | No | `https://cptest.yaltc.cn` | CloudPhone API base URL without `/openapi/v1` |
+| `baseUrl` | string | No | `https://whateverai.ai/ai` | CloudPhone API base URL without `/openapi/v1` |
 | `apikey` | string | Yes | - | Authorization credential (ApiKey) |
 | `timeout` | number | No | `5000` | Request timeout in milliseconds |
 

@@ -10,7 +10,7 @@
       "baseUrl": {
         "type": "string",
         "description": "CloudPhone API base URL (without /openapi/v1)",
-        "default": "https://cptest.yaltc.cn"
+        "default": "https://whateverai.ai/ai"
       },
       "apikey": {
         "type": "string",
@@ -26,7 +26,7 @@
   "uiHints": {
     "baseUrl": {
       "label": "API Base URL",
-      "placeholder": "https://cptest.yaltc.cn (without /openapi/v1)"
+      "placeholder": "https://whateverai.ai/ai (without /openapi/v1)"
     },
     "apikey": {
       "label": "Authorization / ApiKey",

@@ -84,7 +84,7 @@ async function apiRequest(
   path: string,
   payload?: Record<string, unknown>
 ): Promise<McpToolResult> {
-  const baseUrl = normalizeBaseUrl(runtimeConfig.baseUrl ?? "https://cptest.yaltc.cn");
+  const baseUrl = normalizeBaseUrl(runtimeConfig.baseUrl ?? "https://whateverai.ai/ai");
   const timeout = runtimeConfig.timeout ?? 5000;
   const url = `${baseUrl}/openapi/v1${path.startsWith("/") ? path : `/${path}`}`;
 
