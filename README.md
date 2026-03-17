@@ -6,7 +6,7 @@ OpenClaw CloudPhone is a plugin that gives AI agents device management and UI au
 
 With natural language instructions, an agent can list devices, power them on or off, capture screenshots, tap, swipe, type text, and perform other UI actions without writing manual scripts.
 
-Starting from `v1.0.2`, the package also ships with a built-in skill, `basic-skill`, which helps agents combine these tools in a more reliable way.
+Starting from `v1.0.3`, the package also ships with a built-in skill, `basic-skill`, which helps agents combine these tools in a more reliable way.
 
 ## Quick Start
 
@@ -54,7 +54,7 @@ Once the plugin is loaded successfully, the agent can use all CloudPhone tools. 
 
 This repository is first and foremost an **OpenClaw plugin**. Its job is to expose the CloudPhone OpenAPI as tools that an agent can call.
 
-Starting from `v1.0.2`, the package also includes an **OpenClaw skill**:
+Starting from `v1.0.3`, the package also includes an **OpenClaw skill**:
 
 - Plugin: defines **what the agent can do** by providing `cloudphone_*` tools
 - Skill: defines **how the agent should do it reliably** by teaching call order, recovery steps, and safer workflows
@@ -262,7 +262,7 @@ Make sure `plugins.entries.cloudphone.enabled` is set to `true` in `openclaw.jso
 
 **Q: The tools work, but the agent is not very stable when operating a cloud phone UI.**
 
-Starting from `v1.0.2`, the package ships with the `basic-skill` skill. It teaches the agent to use the tools in a short loop: observe -> act -> verify -> observe again. Make sure you installed a recent version and restarted the Gateway so the latest skill was loaded.
+Starting from `v1.0.3`, the package ships with the `basic-skill` skill. It teaches the agent to use the tools in a short loop: observe -> act -> verify -> observe again. Make sure you installed a recent version and restarted the Gateway so the latest skill was loaded.
 
 **Q: A tool call fails with a request error or timeout.**
 
@@ -280,9 +280,9 @@ The agent should call `cloudphone_render_image` automatically to turn that URL i
 
 ## Changelog
 
-Current version: **v1.0.2**
+Current version: **v1.0.3**
 
-### v1.0.2
+### v1.0.3
 
 - Added the built-in `basic-skill` skill distributed with the plugin
 - Added `reference.md` as a tool parameter quick reference
