@@ -59,9 +59,9 @@ You can also configure the CloudPhone plugin in the OpenClaw console UI:
 
 Screenshots:
 
-![OpenClaw Console — Plugins](assets/0.jpg)
+![OpenClaw Console — Plugins](https://github.com/whateverai-ai/cloudphone/blob/main/assets/0.jpg)
 
-![OpenClaw Console — CloudPhone config](assets/1.jpg)
+![OpenClaw Console — CloudPhone config](https://github.com/whateverai-ai/cloudphone/blob/main/assets/1.jpg)
 
 ### 3. Restart the Gateway
 

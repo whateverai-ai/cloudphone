@@ -59,9 +59,9 @@ openclaw plugins update @whateverai/cloudphone
 
 参考截图：
 
-![OpenClaw 控制台 — 插件](assets/0.jpg)
+![OpenClaw 控制台 — 插件](https://github.com/whateverai-ai/cloudphone/blob/main/assets/0.jpg)
 
-![OpenClaw 控制台 — CloudPhone 配置](assets/1.jpg)
+![OpenClaw 控制台 — CloudPhone 配置](https://github.com/whateverai-ai/cloudphone/blob/main/assets/1.jpg)
 
 ### 3. 重启 Gateway
 
