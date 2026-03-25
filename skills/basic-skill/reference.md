@@ -136,14 +136,14 @@ The source of truth for parameters and descriptions is `src/tools.ts`.
 - `device_id`: `string`, device ID
 - Optional parameters:
 - `format`: `string`, allowed value: `screenshot`, default `screenshot`
-- Returns: snapshot result as JSON text, including `screenshot_url`
+- Returns: snapshot result as JSON text, including `screenshot_url` (a **pre-signed URL**—must be copied in full, including all `?` query parameters; see **[cloudphone-snapshot-url](../cloudphone-snapshot-url/SKILL.md)**)
 - Typical use: observe and verify the UI before and after any interaction
 
 ### `cloudphone_render_image`
 
 - Purpose: render an HTTPS image URL as an image directly displayable in chat
 - Required parameters:
-- `image_url`: `string`, HTTPS image URL
+- `image_url`: `string`, complete HTTPS image URL (must match `screenshot_url` from `cloudphone_snapshot` exactly, including the full query string)
 - Returns:
 - one MCP `image` content item with base64 `data` and `mimeType` for direct chat rendering
 - one fallback `MEDIA:<filePath>` text item for hosts that still rely on the legacy media marker

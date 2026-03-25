@@ -29,6 +29,7 @@ Prefer this skill for requests such as:
 - the user wants the agent to tap, long press, swipe, type text, go back, or return to the home screen on a cloud phone
 - the user wants the agent to capture a screenshot first and decide the next step based on the current screen
 - the user wants to complete a multi-step UI automation task such as opening a page and interacting with it
+- the user needs a **screenshot link** shared externally (chat, email, or **WeChat Work / 企业微信**): follow the **`cloudphone-snapshot-url`** skill so `screenshot_url` is never truncated
 
 ## Preconditions
 
@@ -54,7 +55,7 @@ Check these configuration items first:
 - `401` or authorization failure: `apikey` is usually invalid, expired, or missing.
 - `404`: wrong or unreachable API endpoint—often a custom `baseUrl` or deployment issue; with default settings, treat as service or routing problem.
 - `timeout`, `AbortError`, or request timeout: usually network latency, service load, or temporary unavailability.
-- Image cannot be displayed: first confirm that `cloudphone_snapshot` was called, then pass the returned screenshot URL to `cloudphone_render_image`. The tool now returns an MCP `image` content item first and keeps a legacy `MEDIA:<filePath>` fallback, so if nothing is shown, check whether the current UI consumes `type: "image"` tool output.
+- Image cannot be displayed: first confirm that `cloudphone_snapshot` was called, then pass the **full** pre-signed screenshot URL to `cloudphone_render_image` (see **`cloudphone-snapshot-url`** skill). The snapshot tool may return a CRITICAL notice plus a code block—use the URL inside it verbatim. If nothing is shown, check whether the current UI consumes `type: "image"` or `MEDIA:<filePath>` tool output.
 
 ### Troubleshooting Principles
 
@@ -86,6 +87,8 @@ Check these configuration items first:
 - `cloudphone_wait`
 - `cloudphone_snapshot`
 - `cloudphone_render_image`
+
+Whenever you paste a **screenshot URL** for the user (especially 企业微信), load and follow **[cloudphone-snapshot-url](../cloudphone-snapshot-url/SKILL.md)** so the pre-signed query string is never stripped.
 
 For a quick parameter reference, read [reference.md](reference.md).
 

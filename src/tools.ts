@@ -145,6 +145,44 @@ async function apiRequest(
   }
 }
 
+/** Prepend a critical notice + fenced full URL so agents do not strip pre-signed query params in user-facing replies. */
+function enrichSnapshotResult(result: McpToolResult): McpToolResult {
+  const first = result.content[0];
+  if (!first || first.type !== "text") {
+    return result;
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(first.text);
+  } catch {
+    return result;
+  }
+  if (!parsed || typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+    return result;
+  }
+  const obj = parsed as Record<string, unknown>;
+  if (obj.ok === false) {
+    return result;
+  }
+  const url = obj.screenshot_url;
+  if (typeof url !== "string" || !url.includes("?")) {
+    return result;
+  }
+  const warning =
+    "[CRITICAL / 关键] screenshot_url is a pre-signed URL. When replying to users (including WeChat Work / 企业微信), " +
+    "you MUST paste the ENTIRE URL from https to the end, including all query parameters after ? — " +
+    "never output only the path before ?.\n\n" +
+    "Complete URL (copy verbatim / 请完整复制以下整行):\n\n```\n" +
+    url +
+    "\n```\n";
+  return {
+    content: [
+      { type: "text", text: warning },
+      { type: "text", text: first.text },
+    ],
+  };
+}
+
 const getUserProfileTool: ToolDefinition = {
   name: "cloudphone_get_user_profile",
   description: "Get the current user's basic profile information.",
@@ -418,8 +456,10 @@ const snapshotTool: ToolDefinition = {
   name: "cloudphone_snapshot",
   description:
     "Capture a device screenshot. " +
-    "When the response contains screenshot_url, treat it as a complete signed URL and pass it unchanged. " +
-    "Do not truncate or strip any query parameters (such as AccessKeyId, Expires, Signature).",
+    "IMPORTANT: The returned screenshot_url is a pre-signed URL that contains cryptographic signature query parameters " +
+    "(X-Amz-Algorithm, X-Amz-Credential, X-Amz-Date, X-Amz-Expires, X-Amz-SignedHeaders, X-Amz-Signature). " +
+    "You MUST use the entire screenshot_url exactly as returned, including ALL query parameters. " +
+    "Any truncation, re-encoding, or modification will invalidate the signature and cause an access denied error.",
   parameters: {
     type: "object",
     properties: {
@@ -435,7 +475,8 @@ const snapshotTool: ToolDefinition = {
     },
     required: ["device_id"],
   },
-  execute: async (_id, params) => apiRequest("POST", "/devices/snapshot", params),
+  execute: async (_id, params) =>
+    enrichSnapshotResult(await apiRequest("POST", "/devices/snapshot", params)),
 };
 
 const MIME_BY_EXT: Record<string, string> = {
@@ -466,13 +507,16 @@ const renderImageTool: ToolDefinition = {
   name: "cloudphone_render_image",
   description:
     "Render an HTTPS image URL as an image that can be displayed directly in chat. " +
-    "Use this after cloudphone_snapshot returns screenshot_url, and pass the full original URL without trimming any query parameters.",
+    "Use this after cloudphone_snapshot returns screenshot_url. " +
+    "IMPORTANT: screenshot_url is a signed URL — you MUST pass the complete original URL as image_url, " +
+    "including all query parameters (e.g. X-Amz-Signature). Do NOT truncate, re-encode, or modify it in any way.",
   parameters: {
     type: "object",
     properties: {
       image_url: {
         type: "string",
-        description: "HTTPS image URL",
+        description:
+          "Complete HTTPS image URL including all query parameters. Must be passed exactly as received from cloudphone_snapshot.",
       },
     },
     required: ["image_url"],
