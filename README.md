@@ -24,13 +24,14 @@ openclaw plugins update @whateverai/cloudphone
 
 ### 2. Configure the plugin
 
+For most setups, you only need to set **`apikey`** in `plugins.entries.cloudphone.config`. The plugin applies built-in defaults for other optional settings. Advanced users can still add optional keys such as `baseUrl` or `timeout` when self-hosting or tuning behavior; see `openclaw.plugin.json` in this package for the full schema.
+
 You can configure the plugin in either of the following ways.
 
 #### Option A: Configuration file (openclaw.json)
 
 Add the following configuration to `openclaw.json`:
 
-- **baseUrl**: Use the default value; keep it as `https://whateverai.ai/ai` and you do not need to change it.
 - **apikey**: Obtain your API Key by logging in or signing up at [https://whateverai.ai](https://whateverai.ai), then add it in your account/settings and paste it into the `apikey` field below.
 
 ```json
@@ -40,7 +41,6 @@ Add the following configuration to `openclaw.json`:
       "cloudphone": {
         "enabled": true,
         "config": {
-          "baseUrl": "https://whateverai.ai/ai",
           "apikey": "the apikey you can get from the user center of this website"
         }
       }
@@ -55,7 +55,7 @@ You can also configure the CloudPhone plugin in the OpenClaw console UI:
 
 1. Open the OpenClaw console in your browser.
 2. Go to the Plugins section, find **CloudPhone** and enable it.
-3. Set **baseUrl** (keep the default `https://whateverai.ai/ai`) and **apikey** (from [https://whateverai.ai](https://whateverai.ai) after login or sign-up, in your account/settings).
+3. Set **apikey** (from [https://whateverai.ai](https://whateverai.ai) after login or sign-up, in your account/settings).
 
 Screenshots:
 
@@ -104,7 +104,7 @@ The skill does not add new API capabilities and does not require an extra instal
 
 `basic-skill` mainly improves the following areas:
 
-- Installation and troubleshooting: checking `openclaw.json`, `baseUrl`, `apikey`, and `timeout`
+- Installation and troubleshooting: checking `openclaw.json` and `apikey`
 - Standard workflow: select device -> confirm online -> observe -> act -> verify
 - UI automation stability: using short loops such as observe -> act -> verify -> observe again
 - Recovery strategy: prefer `BACK`, `HOME`, and fresh screenshots; restart the device only when needed
@@ -125,11 +125,11 @@ If you need those capabilities, extend the plugin itself instead of changing onl
 
 | Field | Type | Required | Default | Description |
 |------|------|------|--------|------|
-| `baseUrl` | string | No | `https://whateverai.ai/ai` | CloudPhone API base URL without `/openapi/v1` |
 | `apikey` | string | Yes | - | Authorization credential (ApiKey) |
-| `timeout` | number | No | `5000` | Request timeout in milliseconds |
 
 > Obtain your API Key by logging in or signing up at [https://whateverai.ai](https://whateverai.ai), then find it in your account/settings.
+
+Optional fields such as `baseUrl` and `timeout` are documented in `openclaw.plugin.json` and use built-in defaults when omitted; set them only for custom deployments or advanced tuning.
 
 ## Tool Overview
 
@@ -287,9 +287,9 @@ Starting from `v1.0.7`, the package ships with the `basic-skill` skill. It teach
 
 **Q: A tool call fails with a request error or timeout.**
 
-- Check whether `baseUrl` is correct and does not include `/openapi/v1`
-- Check whether `apikey` is valid
-- Increase `timeout` if the network is slow or unstable
+- Check whether `apikey` is valid and that you restarted the Gateway after changing config
+- Check network connectivity and whether the CloudPhone service is reachable
+- If you use a custom deployment or endpoint, verify routing and availability on your side
 
 **Q: How do I get an `apikey`?**
 
@@ -301,7 +301,13 @@ The agent should call `cloudphone_render_image` automatically to turn that URL i
 
 ## Changelog
 
-Current version: **v1.0.7**
+Current version: **v1.0.8**
+
+### v1.0.8
+
+- Simplified plugin configuration documentation: typical users only need `apikey`; optional `baseUrl` and `timeout` remain in `openclaw.plugin.json` with built-in defaults
+- Updated `basic-skill` skill preconditions and troubleshooting to match the streamlined config guidance
+- Synced English and Chinese README and changelog wording
 
 ### v1.0.7
 

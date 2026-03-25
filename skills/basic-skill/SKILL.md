@@ -36,9 +36,7 @@ Before calling any tool, confirm the following:
 
 1. The `cloudphone` plugin is enabled.
 2. `plugins.entries.cloudphone.config` exists in `openclaw.json`.
-3. `baseUrl` does not include the `/openapi/v1` suffix.
-4. `apikey` is configured and valid.
-5. If the network is slow, `timeout` may need to be increased.
+3. `apikey` is configured and valid.
 
 If the user reports that the tools are missing, ask them to verify that the plugin is enabled and restart the Gateway.
 
@@ -49,21 +47,19 @@ If the user reports that the tools are missing, ask them to verify that the plug
 Check these configuration items first:
 
 - `plugins.entries.cloudphone.enabled` should be `true`
-- `plugins.entries.cloudphone.config.baseUrl`
 - `plugins.entries.cloudphone.config.apikey`
-- `plugins.entries.cloudphone.config.timeout`
 
 ### Common Errors
 
 - `401` or authorization failure: `apikey` is usually invalid, expired, or missing.
-- `404`: `baseUrl` is usually incorrect, most often because `/openapi/v1` was included.
-- `timeout`, `AbortError`, or request timeout: usually caused by network conditions or a timeout value that is too small.
+- `404`: wrong or unreachable API endpoint—often a custom `baseUrl` or deployment issue; with default settings, treat as service or routing problem.
+- `timeout`, `AbortError`, or request timeout: usually network latency, service load, or temporary unavailability.
 - Image cannot be displayed: first confirm that `cloudphone_snapshot` was called, then pass the returned screenshot URL to `cloudphone_render_image`. The tool now returns an MCP `image` content item first and keeps a legacy `MEDIA:<filePath>` fallback, so if nothing is shown, check whether the current UI consumes `type: "image"` tool output.
 
 ### Troubleshooting Principles
 
-- Verify config first, then network, then timeout settings.
-- Do not assume the config is still correct. Even if the user says it worked yesterday, re-check the key and URL.
+- Verify `apikey` and Gateway restart first, then network and service availability.
+- Do not assume the config is still correct. Even if the user says it worked yesterday, re-check the key.
 - When a request fails, explain the failure type and the recovery suggestion instead of repeating the raw error only.
 
 ## Tool Groups

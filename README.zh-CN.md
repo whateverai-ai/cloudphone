@@ -24,13 +24,14 @@ openclaw plugins update @whateverai/cloudphone
 
 ### 2. 配置插件
 
+一般情况下，只需在 `plugins.entries.cloudphone.config` 中填写 **`apikey`**；其余可选项由插件内置默认值覆盖。若需自托管或进阶调优，仍可在 `openclaw.json` 或控制台中补充 `baseUrl`、`timeout` 等可选字段，完整字段说明见本包中的 `openclaw.plugin.json`。
+
 可通过以下两种方式之一配置插件。
 
 #### 方式一：配置文件（openclaw.json）
 
 在 `openclaw.json` 中添加以下配置：
 
-- **baseUrl**：使用默认值即可，保持为 `https://whateverai.ai/ai` 不需修改。
 - **apikey**：在 [https://whateverai.ai](https://whateverai.ai) 登录或注册后，在账户/设置中获取 API Key，填入下方 `apikey` 字段。
 
 ```json
@@ -40,7 +41,6 @@ openclaw plugins update @whateverai/cloudphone
       "cloudphone": {
         "enabled": true,
         "config": {
-          "baseUrl": "https://whateverai.ai/ai",
           "apikey": "你可以在该网站的用户中心获取 API 密钥"
         }
       }
@@ -55,7 +55,7 @@ openclaw plugins update @whateverai/cloudphone
 
 1. 在浏览器中打开 OpenClaw 控制台。
 2. 进入「插件」相关页面，找到 **CloudPhone** 并启用。
-3. 填写 **baseUrl**（保持默认 `https://whateverai.ai/ai` 即可）和 **apikey**（在 [https://whateverai.ai](https://whateverai.ai) 登录或注册后，于账户/设置中获取）。
+3. 填写 **apikey**（在 [https://whateverai.ai](https://whateverai.ai) 登录或注册后，于账户/设置中获取）。
 
 参考截图：
 
@@ -104,7 +104,7 @@ skills/basic-skill/
 
 `basic-skill` 主要解决以下问题：
 
-- 安装与排障：检查 `openclaw.json`、`baseUrl`、`apikey`、`timeout`
+- 安装与排障：检查 `openclaw.json` 与 `apikey`
 - 标准流程：选设备 -> 确认在线 -> 观察 -> 操作 -> 验证
 - UI 自动化稳定性：采用“观察 -> 行动 -> 验证 -> 再观察”的短闭环
 - 恢复策略：优先 `BACK`、`HOME`、重新截图，必要时重启设备
@@ -125,11 +125,11 @@ skills/basic-skill/
 
 | 字段 | 类型 | 必填 | 默认值 | 说明 |
 |------|------|------|--------|------|
-| `baseUrl` | string | 否 | `https://whateverai.ai/ai` | 云手机 API 基础地址（不含 `/openapi/v1`） |
 | `apikey` | string | 是 | — | Authorization 鉴权凭证（ApiKey） |
-| `timeout` | number | 否 | `5000` | 请求超时时间（毫秒） |
 
 > `apikey` 请在 [https://whateverai.ai](https://whateverai.ai) 登录或注册后，在账户/设置中获取。
+
+`baseUrl`、`timeout` 等可选字段见 `openclaw.plugin.json`；省略时使用内置默认值，仅在自托管或需要调优时再填写。
 
 ## 工具一览
 
@@ -287,9 +287,9 @@ image_url : string - HTTPS 图片地址（必填）
 
 **Q: 调用工具报请求失败或超时？**
 
-- 检查 `baseUrl` 是否正确，并且不要包含 `/openapi/v1`
-- 检查 `apikey` 是否有效
-- 网络较慢或不稳定时，可适当增大 `timeout`
+- 检查 `apikey` 是否有效，修改配置后是否已重启 Gateway
+- 检查本机网络与云手机服务是否可达
+- 若使用自定义部署或端点，请在自有环境侧确认路由与可用性
 
 **Q: 如何获取 `apikey`？**
 
@@ -301,7 +301,13 @@ Agent 应该会自动调用 `cloudphone_render_image` 将该 URL 转成可展示
 
 ## 更新日志
 
-当前版本：**v1.0.7**
+当前版本：**v1.0.8**
+
+### v1.0.8
+
+- 精简插件配置文档：一般用户只需配置 `apikey`；可选 `baseUrl`、`timeout` 仍在 `openclaw.plugin.json` 中，省略时使用内置默认值
+- 同步更新 `basic-skill` 的前置条件与排障说明
+- 同步修订中英文 README 与更新日志表述
 
 ### v1.0.7
 
