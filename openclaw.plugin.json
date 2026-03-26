@@ -1,7 +1,7 @@
 {
   "id": "cloudphone",
   "name": "CloudPhone Plugin",
-  "version": "2026.3.26",
+  "version": "2026.3.26.1",
   "description": "OpenClaw CloudPhone plugin that exposes CloudPhone OpenAPI capabilities for user info, device management, and UI automation as agent tools.",
   "configSchema": {
     "type": "object",
