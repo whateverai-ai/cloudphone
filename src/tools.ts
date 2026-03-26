@@ -88,6 +88,11 @@ function getApiErrorMessage(body: Record<string, unknown>): string {
 
 const LOG_PREFIX = "[cloudphone]";
 
+function summarizeTextForLog(value: string, limit = 120): string {
+  if (!value) return "";
+  return value.length > limit ? `${value.slice(0, limit)}…` : value;
+}
+
 /** Safe for logs: origin + pathname only (no query — pre-signed URLs must not be logged in full). */
 function safeUrlForLog(url: string): string {
   try {
@@ -1311,11 +1316,26 @@ const planActionTool: ToolDefinition = {
   },
   optional: true,
   execute: async (_id, params) => {
+    const traceId = `planAction:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`;
+    const startedAll = Date.now();
     const autoglmBaseUrl = runtimeConfig.autoglmBaseUrl;
     const autoglmApiKey = runtimeConfig.autoglmApiKey;
     const autoglmModel = runtimeConfig.autoglmModel;
+    const deviceId = String(params.device_id ?? "");
+    const task = String(params.task ?? "");
+    const context = params.context ? String(params.context) : undefined;
+    const maxTokens = Number(runtimeConfig.autoglmMaxTokens ?? 3000);
+    const lang = String(runtimeConfig.autoglmLang ?? "cn");
+
+    console.log(
+      `${LOG_PREFIX} planAction start trace=${traceId} device_id=${deviceId || "(empty)"} task_len=${task.length} context_len=${context?.length ?? 0} lang=${lang} max_tokens=${maxTokens}`
+    );
+    console.log(
+      `${LOG_PREFIX} planAction config trace=${traceId} has_base_url=${!!autoglmBaseUrl} has_api_key=${!!autoglmApiKey} has_model=${!!autoglmModel}`
+    );
 
     if (!autoglmBaseUrl || !autoglmApiKey || !autoglmModel) {
+      console.error(`${LOG_PREFIX} planAction config missing trace=${traceId}`);
       return toJsonText({
         ok: false,
         message:
@@ -1327,16 +1347,16 @@ const planActionTool: ToolDefinition = {
       });
     }
 
-    const deviceId = String(params.device_id);
-    const task = String(params.task ?? "");
-    const context = params.context ? String(params.context) : undefined;
-    const maxTokens = Number(runtimeConfig.autoglmMaxTokens ?? 3000);
-    const lang = String(runtimeConfig.autoglmLang ?? "cn");
-
     // 1. Take snapshot
+    const startedSnapshot = Date.now();
+    console.log(`${LOG_PREFIX} planAction step1 snapshot start trace=${traceId}`);
     const snapshotResult = await apiRequest("POST", "/devices/snapshot", { device_id: deviceId }, 15000);
+    console.log(
+      `${LOG_PREFIX} planAction step1 snapshot done trace=${traceId} elapsed=${Date.now() - startedSnapshot}ms content_items=${snapshotResult.content.length}`
+    );
     const first = snapshotResult.content[0];
     if (!first || first.type !== "text") {
+      console.error(`${LOG_PREFIX} planAction step1 snapshot invalid_content trace=${traceId}`);
       return toJsonText({ ok: false, message: "Snapshot did not return text content" });
     }
 
@@ -1344,28 +1364,48 @@ const planActionTool: ToolDefinition = {
     try {
       snapshotData = JSON.parse(first.text);
     } catch {
+      console.error(`${LOG_PREFIX} planAction step1 snapshot parse_failed trace=${traceId}`);
       return toJsonText({ ok: false, message: "Failed to parse snapshot response" });
     }
 
     if (snapshotData.ok === false) {
+      console.error(
+        `${LOG_PREFIX} planAction step1 snapshot failed trace=${traceId} message=${summarizeTextForLog(String(snapshotData.message ?? ""))}`
+      );
       return toJsonText({ ok: false, message: String(snapshotData.message ?? "Snapshot failed") });
     }
 
     const screenshotUrl = String(snapshotData.screenshot_url ?? "");
     if (!screenshotUrl) {
+      console.error(`${LOG_PREFIX} planAction step1 snapshot missing_url trace=${traceId}`);
       return toJsonText({ ok: false, message: "Snapshot did not return a screenshot_url" });
     }
+    console.log(
+      `${LOG_PREFIX} planAction step1 snapshot success trace=${traceId} screenshot=${safeUrlForLog(screenshotUrl)}`
+    );
 
     // 2. Fetch image as base64
+    const startedImgFetch = Date.now();
+    console.log(`${LOG_PREFIX} planAction step2 image_fetch start trace=${traceId}`);
     const imgResult = await fetchImageAsBase64(screenshotUrl);
     if ("error" in imgResult) {
+      console.error(
+        `${LOG_PREFIX} planAction step2 image_fetch failed trace=${traceId} elapsed=${Date.now() - startedImgFetch}ms error=${summarizeTextForLog(imgResult.error)}`
+      );
       return toJsonText({ ok: false, message: `Image fetch error: ${imgResult.error}` });
     }
+    console.log(
+      `${LOG_PREFIX} planAction step2 image_fetch success trace=${traceId} elapsed=${Date.now() - startedImgFetch}ms mime=${imgResult.mimeType} base64_len=${imgResult.base64.length} width=${imgResult.width ?? "?"} height=${imgResult.height ?? "?"}`
+    );
 
     // 3. Call autoglm model for action decision
     let thinking: string;
     let actionStr: string;
     let rawContent: string;
+    const startedAutoglm = Date.now();
+    console.log(
+      `${LOG_PREFIX} planAction step3 autoglm start trace=${traceId} base_url=${safeUrlForLog(autoglmBaseUrl)} model=${autoglmModel} task_preview=${summarizeTextForLog(task, 80)} context_preview=${summarizeTextForLog(context ?? "", 80)}`
+    );
     try {
       ({ thinking, actionStr, rawContent } = await callAutoglmForAction(
         imgResult.base64,
@@ -1378,15 +1418,26 @@ const planActionTool: ToolDefinition = {
         maxTokens,
         lang
       ));
+      console.log(
+        `${LOG_PREFIX} planAction step3 autoglm success trace=${traceId} elapsed=${Date.now() - startedAutoglm}ms thinking_len=${thinking.length} action_len=${actionStr.length} raw_len=${rawContent.length}`
+      );
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err);
+      console.error(
+        `${LOG_PREFIX} planAction step3 autoglm failed trace=${traceId} elapsed=${Date.now() - startedAutoglm}ms error=${summarizeTextForLog(errMsg)}`
+      );
       return toJsonText({ ok: false, message: `AutoGLM call failed: ${errMsg}` });
     }
 
     // 4. Parse action string into structured object
+    const startedParse = Date.now();
     const action = parseAutoglmAction(actionStr);
+    console.log(
+      `${LOG_PREFIX} planAction step4 parse_action trace=${traceId} elapsed=${Date.now() - startedParse}ms action_type=${action.type} has_element=${!!action.element} has_start=${!!action.start} has_end=${!!action.end}`
+    );
 
     // 5. Look up resolution and convert normalized 0-999 coords to device pixels
+    const startedConvert = Date.now();
     const resolution = await getDeviceResolutionByDeviceId(deviceId);
 
     if (resolution) {
@@ -1409,6 +1460,9 @@ const planActionTool: ToolDefinition = {
         ];
       }
     }
+    console.log(
+      `${LOG_PREFIX} planAction step5 convert_coords trace=${traceId} elapsed=${Date.now() - startedConvert}ms resolution=${resolution ? `${resolution.width}x${resolution.height}` : "unknown"} coord_system=${resolution ? "pixel" : "normalized"}`
+    );
 
     const out: Record<string, unknown> = {
       ok: true,
@@ -1424,6 +1478,7 @@ const planActionTool: ToolDefinition = {
       out.resolution_height = resolution.height;
     }
 
+    console.log(`${LOG_PREFIX} planAction done trace=${traceId} elapsed=${Date.now() - startedAll}ms`);
     return toJsonText(out);
   },
 };

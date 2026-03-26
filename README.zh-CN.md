@@ -6,7 +6,7 @@ OpenClaw 云手机插件，让 AI Agent 具备云手机的设备管理与 UI 自
 
 通过自然语言对话即可完成云手机的查询、开关机、截图、点击、滑动、输入等操作，无需手动编写脚本。
 
-从 `v1.0.7` 开始，插件会一并发布内置 skill `basic-skill`，用于教 Agent 更稳定地组合使用这些工具。
+从 `v1.1.0` 开始，插件会一并发布内置 skills（包含 `basic-skill`），用于教 Agent 更稳定地组合使用这些工具。
 
 ## 快速开始
 
@@ -75,7 +75,7 @@ openclaw gateway restart
 
 这个仓库首先是一个 **OpenClaw 插件**，职责是把云手机 OpenAPI 暴露为 Agent 可调用的工具。
 
-从 `v1.0.7` 开始，仓库还会随包发布一个 **OpenClaw Skill**：
+从 `v1.1.0` 开始，仓库会随包发布 **OpenClaw Skills**：
 
 - 插件：解决“能做什么”，提供 `cloudphone_*` 工具
 - skill：解决“怎样更稳地做”，教 Agent 何时调用工具、如何按顺序调用、失败后如何恢复
@@ -163,6 +163,56 @@ skills/basic-skill/
 | `cloudphone_wait` | 等待条件满足，例如元素出现、消失或页面稳定 |
 | `cloudphone_snapshot` | 获取设备截图 |
 | `cloudphone_render_image` | 将截图 URL 渲染为对话中可直接展示的图片 |
+
+## planActionTool（`cloudphone_plan_action`）
+
+`planActionTool` 对应工具名 `cloudphone_plan_action`。它会调用 AutoGLM 模型，结合当前截图与任务目标，产出结构化的下一步操作规划，帮助云手机 UI 自动化更稳地决策。
+
+典型场景：
+- 页面状态复杂，不确定下一步动作
+- 执行前先判断应点击/滑动/输入什么
+- 直接操作多次失败后用于恢复决策
+
+### 前置配置
+
+使用 `cloudphone_plan_action` 前需要在插件配置中设置：
+- 必填：`autoglmBaseUrl`、`autoglmApiKey`、`autoglmModel`
+- 可选：`autoglmMaxTokens`（默认 `3000`）、`autoglmLang`（默认 `cn`）
+
+示例（`plugins.entries.cloudphone.config`）：
+
+```json
+{
+  "autoglmBaseUrl": "https://open.bigmodel.cn/api/paas/v4",
+  "autoglmApiKey": "your-api-key",
+  "autoglmModel": "autoglm-phone",
+  "autoglmMaxTokens": 3000,
+  "autoglmLang": "cn"
+}
+```
+
+### 参数与最小示例
+
+核心入参：
+- `device_id`：目标云手机设备 ID
+- `goal`：自然语言任务目标
+
+最小示例：
+
+```text
+device_id: "your-device-id"
+goal: "打开微信并进入搜索页面"
+```
+
+预期输出：
+- 对当前页面的分析摘要
+- 可由 `cloudphone_*` 工具执行的下一步建议动作
+
+### 注意事项
+
+- 缺少必填 `autoglm*` 配置时，工具会返回配置错误。
+- 推荐链路：`cloudphone_snapshot` -> `cloudphone_plan_action` -> 用 `cloudphone_tap`/`cloudphone_swipe`/`cloudphone_input_text` 执行 -> 再截图验证。
+- 每次 `goal` 尽量聚焦一个短目标，可提升规划质量与稳定性。
 
 ## 使用示例
 
@@ -283,7 +333,7 @@ image_url : string - HTTPS 图片地址（必填）
 
 **Q: 工具能用，但 Agent 不太会稳定操作云手机 UI？**
 
-从 `v1.0.7` 开始，插件会随包发布 `basic-skill` skill。它会教 Agent 按“观察 -> 行动 -> 验证 -> 再观察”的闭环使用工具。请确认当前安装的是较新版本，并已重启 Gateway 让最新 skill 被加载。
+从 `v1.1.0` 开始，插件会随包发布内置 skills（如 `basic-skill`）。它们会教 Agent 按“观察 -> 行动 -> 验证 -> 再观察”的闭环使用工具。请确认当前安装的是较新版本，并已重启 Gateway 让最新 skills 被加载。
 
 **Q: 调用工具报请求失败或超时？**
 
@@ -301,7 +351,13 @@ Agent 应该会自动调用 `cloudphone_render_image` 将该 URL 转成可展示
 
 ## 更新日志
 
-当前版本：**v1.1.0**
+当前版本：**v2026.3.26**
+
+### v2026.3.26
+
+- 为 cloudphone_plan_action 增加详细分步日志，提升调试与失败排查效率
+- 完善 planActionTool 文档说明，补充前置配置、调用流程和注意事项（中英文 README 同步）
+- 同步内置 skills 相关表述与发布文档，使其与当前 v1.1.0+ 行为保持一致
 
 ### v1.1.0
 

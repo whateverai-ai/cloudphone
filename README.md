@@ -6,7 +6,7 @@ OpenClaw CloudPhone is a plugin that gives AI agents device management and UI au
 
 With natural language instructions, an agent can list devices, power them on or off, capture screenshots, tap, swipe, type text, and perform other UI actions without writing manual scripts.
 
-Starting from `v1.0.7`, the package also ships with a built-in skill, `basic-skill`, which helps agents combine these tools in a more reliable way.
+Starting from `v1.1.0`, the package ships with built-in skills (including `basic-skill`) that help agents combine these tools in a more reliable way.
 
 ## Quick Start
 
@@ -75,7 +75,7 @@ Once the plugin is loaded successfully, the agent can use all CloudPhone tools. 
 
 This repository is first and foremost an **OpenClaw plugin**. Its job is to expose the CloudPhone OpenAPI as tools that an agent can call.
 
-Starting from `v1.0.7`, the package also includes an **OpenClaw skill**:
+Starting from `v1.1.0`, the package includes **OpenClaw skills**:
 
 - Plugin: defines **what the agent can do** by providing `cloudphone_*` tools
 - Skill: defines **how the agent should do it reliably** by teaching call order, recovery steps, and safer workflows
@@ -163,6 +163,56 @@ After the plugin is installed, the agent automatically gets the following capabi
 | `cloudphone_wait` | Wait for a condition such as element appear/disappear or page stability |
 | `cloudphone_snapshot` | Capture a device screenshot |
 | `cloudphone_render_image` | Render a screenshot URL as an image directly in chat |
+
+## planActionTool (`cloudphone_plan_action`)
+
+`planActionTool` maps to `cloudphone_plan_action`. It lets the agent call an AutoGLM model to analyze the current screenshot and goal, then return a structured next-action plan for CloudPhone UI automation.
+
+Typical scenarios:
+- uncertain next step on a dynamic UI
+- deciding tap/swipe/input intent before execution
+- recovering when repeated direct actions fail
+
+### Prerequisites
+
+Configure these plugin fields before using `cloudphone_plan_action`:
+- required: `autoglmBaseUrl`, `autoglmApiKey`, `autoglmModel`
+- optional: `autoglmMaxTokens` (default `3000`), `autoglmLang` (default `cn`)
+
+Example (`plugins.entries.cloudphone.config`):
+
+```json
+{
+  "autoglmBaseUrl": "https://open.bigmodel.cn/api/paas/v4",
+  "autoglmApiKey": "your-api-key",
+  "autoglmModel": "autoglm-phone",
+  "autoglmMaxTokens": 3000,
+  "autoglmLang": "cn"
+}
+```
+
+### Parameters and minimal example
+
+Core input:
+- `device_id`: target cloud phone device ID
+- `goal`: natural language task goal
+
+Minimal example:
+
+```text
+device_id: "your-device-id"
+goal: "Open WeChat and enter the search page"
+```
+
+Expected output:
+- model reasoning summary for the current screen
+- a suggested next action that can be executed with `cloudphone_*` tools
+
+### Notes
+
+- If required `autoglm*` fields are missing, the tool returns a config error.
+- Recommended flow: `cloudphone_snapshot` -> `cloudphone_plan_action` -> execute with `cloudphone_tap`/`cloudphone_swipe`/`cloudphone_input_text` -> verify with new snapshot.
+- Keep each goal focused to one immediate UI objective for better planning quality.
 
 ## Usage Examples
 
@@ -283,7 +333,7 @@ Make sure `plugins.entries.cloudphone.enabled` is set to `true` in `openclaw.jso
 
 **Q: The tools work, but the agent is not very stable when operating a cloud phone UI.**
 
-Starting from `v1.0.7`, the package ships with the `basic-skill` skill. It teaches the agent to use the tools in a short loop: observe -> act -> verify -> observe again. Make sure you installed a recent version and restarted the Gateway so the latest skill was loaded.
+Starting from `v1.1.0`, the package ships with built-in skills such as `basic-skill`. They teach the agent to use the tools in a short loop: observe -> act -> verify -> observe again. Make sure you installed a recent version and restarted the Gateway so the latest skills were loaded.
 
 **Q: A tool call fails with a request error or timeout.**
 
@@ -301,7 +351,13 @@ The agent should call `cloudphone_render_image` automatically to turn that URL i
 
 ## Changelog
 
-Current version: **v1.1.0**
+Current version: **v2026.3.26**
+
+### v2026.3.26
+
+- Added verbose step-by-step logs for cloudphone_plan_action to improve debugging and failure tracing
+- Expanded planActionTool documentation with prerequisites, usage flow, and safety notes in both English and Chinese README
+- Synced built-in skills wording and release docs to align with the current v1.1.0+ behavior
 
 ### v1.1.0
 
