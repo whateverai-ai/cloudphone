@@ -117,15 +117,35 @@ cloudphone_task_result(task_id = 42)
   }
 ```
 
-- The tool blocks until the task completes, errors, or `timeout_ms` elapses.
+**You MUST wait for `cloudphone_task_result` to return before doing anything else.** The tool is blocking — it subscribes to the SSE stream and does not return until the task reaches a terminal state (`done`, `success`, `error`, or `timeout`). Do not assume the task succeeded or failed until you receive the return value.
+
 - `thinking` contains the backend agent's step-by-step reasoning.
 - `result` contains the final structured outcome from the backend.
+- `result.message` contains the agent's final action summary (human-readable).
 
-If `status` is `"error"`, read the `message` field and decide whether to retry.
+**After receiving the result, always report back to the user before taking any further action.**
 
-If `status` is `"timeout"`, the task may still be running on the backend. Consider calling with a longer `timeout_ms`.
+If `status` is `"error"`, follow the Error Recovery procedure below.
+
+If `status` is `"timeout"`, the tool has already retried automatically. If the task consistently times out, report to the user that the operation could not be completed.
 
 ## Task Execution Strategy
+
+### Strict Rules — Must Follow for Every Task
+
+**These rules apply to the entire execution flow — from submission to result:**
+
+1. **Only submit tasks the user explicitly asked for.** Never autonomously add extra steps, follow-up actions, or supplementary operations that the user did not request.
+
+2. **Never include screenshot or screen-capture instructions.** Instructions like "截图", "截屏", or "take a screenshot" will NOT return any image result through this plugin. The backend agent cannot relay screenshots back to the caller. These instructions waste time and produce no useful output.
+
+3. **Never submit duplicate tasks.** Do not call `cloudphone_execute` again for the same user request while a previous call is still being processed by `cloudphone_task_result`.
+
+4. **Always call `cloudphone_task_result` after every `cloudphone_execute` and wait for it to return.** Never skip this step. Never assume success without a confirmed terminal status from `cloudphone_task_result`.
+
+5. **Retry at most 2 times total.** If a task returns `status: "error"`, you may retry `cloudphone_execute` with a revised instruction (max 2 retries). If `status: "timeout"` persists after the built-in retries, do not call `cloudphone_task_result` again — report failure to the user instead.
+
+6. **Report failure explicitly after exhausting retries.** Once you have reached the retry limit with no successful result, stop all automation and clearly tell the user: the operation failed, the reason (from `message` / `thinking`), and optionally suggest a corrective action.
 
 ### Writing Effective Instructions
 
@@ -133,10 +153,11 @@ The backend AI Agent is driven by the natural language `instruction`. Quality of
 
 **Good patterns:**
 - Include the starting app: "打开抖音，搜索美食，点赞第一条视频"
-- Include the goal state: "完成登录后截图确认主页"
+- Include the goal state: "进入设置页面，关闭通知权限"
 - Be specific about selection criteria: "选择评分最高的商品"
 
 **Avoid:**
+- Screenshot instructions: "截图当前屏幕" — use query-based instructions instead
 - Vague instructions without a clear target: "做一些操作"
 - Instructions that depend on unshared context: "点击刚才那个按钮"
 
@@ -152,12 +173,26 @@ The backend stream timeout is 300 seconds. If the task is expected to run longer
 
 ### Error Recovery
 
-If `cloudphone_task_result` returns `status: "error"`:
+#### When `status` is `"error"`
 
 1. Read the `message` and `thinking` fields to understand what went wrong.
-2. Retry `cloudphone_execute` with a revised instruction (more specific, different phrasing).
+2. Retry `cloudphone_execute` with a revised instruction (more specific, different phrasing), then call `cloudphone_task_result` and wait for the result.
 3. If the device may be stuck or offline, call `cloudphone_list_devices` to check its status.
-4. After 3 consecutive failures, stop and report to the user.
+4. After **2 retries** (3 total attempts), **stop immediately** and tell the user the operation failed. Do not keep retrying indefinitely.
+
+**Failure report format:**
+> "操作执行失败（尝试了 X 次）。错误信息：{message}。建议：{suggestion based on error type}"
+
+#### When `status` is `"timeout"`
+
+The tool has already internally retried up to 2 times. After all retries are exhausted:
+
+- Do **not** call `cloudphone_task_result` again for the same task.
+- Tell the user the operation timed out and could not be confirmed.
+- If the timeout seems too short for the task (e.g. a complex multi-step workflow), suggest the user retry with a larger `timeout_ms`.
+
+**Timeout report format:**
+> "操作超时，未能在规定时间内获取执行结果。云手机上的操作可能仍在进行，也可能已失败。建议稍后重试，或检查设备状态。"
 
 ## Recommended Task Templates
 
@@ -166,17 +201,23 @@ If `cloudphone_task_result` returns `status: "error"`:
 ```text
 1. cloudphone_list_devices → identify device_id
 2. cloudphone_execute(instruction, device_id) → get task_id
-3. cloudphone_task_result(task_id) → get result
-4. report result to user
+3. [WAIT] cloudphone_task_result(task_id) → MUST wait for return
+4a. status == "done"/"success" → report result to user
+4b. status == "error"          → retry up to 2 times (go to step 2 with revised instruction)
+4c. status == "timeout"        → report timeout failure to user, stop
+4d. after 2 retries still fail → report failure to user, stop
 ```
 
 ### With Explicit Device Check
 
 ```text
-1. cloudphone_list_devices → identify device_id, confirm online
+1. cloudphone_list_devices → confirm device is online, get device_id
 2. cloudphone_execute(instruction, device_id) → get task_id
-3. cloudphone_task_result(task_id) → get result
-4. report result; if error, explain failure and optionally retry
+3. [WAIT] cloudphone_task_result(task_id) → MUST wait for return
+4a. ok == true  → summarize result.message and thinking for the user
+4b. ok == false → determine if retryable (error vs timeout)
+    - error:   retry cloudphone_execute (max 2 times total) then report
+    - timeout: report timeout to user immediately, do not retry result stream
 ```
 
 ## Capability Boundaries
@@ -201,11 +242,14 @@ The plugin does **not** expose direct low-level UI control tools. All automation
 When replying to the user:
 
 - Briefly state the current step (device lookup, task submission, result)
-- If `cloudphone_task_result` returns `thinking`, summarize the key steps for the user
-- If something fails, explain the failure reason and the recovery suggestion
+- Always wait for `cloudphone_task_result` to return before reporting any outcome
+- If `cloudphone_task_result` returns `thinking` or `result.message`, summarize the key steps for the user
+- **If all retries are exhausted with no success, explicitly tell the user the operation failed** — include the reason from `message`/`thinking` and a concrete suggestion
 
 Do not:
 
 - pretend to know what happened on the device without calling `cloudphone_task_result`
 - confuse `user_device_id` and `device_id`
 - call `cloudphone_execute` multiple times for the same task before the first one completes
+- silently retry beyond the 2-retry limit without telling the user what is happening
+- report a task as "in progress" or "maybe succeeded" — either it succeeded (confirmed result) or it failed (tell the user)
