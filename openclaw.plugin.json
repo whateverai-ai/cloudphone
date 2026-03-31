@@ -1,7 +1,7 @@
 {
   "id": "cloudphone",
   "name": "CloudPhone Plugin",
-  "version": "2026.3.30",
+  "version": "2026.3.31",
   "description": "OpenClaw CloudPhone plugin that exposes CloudPhone AI Agent capabilities as agent tools. Submit natural language instructions for cloud phone automation and stream task results via SSE.",
   "configSchema": {
     "type": "object",

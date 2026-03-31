@@ -199,7 +199,13 @@ Yes. Each call returns an independent `task_id`. You can call `cloudphone_task_r
 
 ## Changelog
 
-Current version: **v2026.3.30**
+Current version: **v2026.3.31**
+
+### v2026.3.31
+
+- Enhanced task execution and result handling flow in plugin tools
+- Improved task-related documentation and reference examples in built-in skills
+- Synced package/plugin/doc version references to `v2026.3.31`
 
 ### v2026.3.30
 
