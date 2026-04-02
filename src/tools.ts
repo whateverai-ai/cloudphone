@@ -182,7 +182,7 @@ async function apiRequest(
   timeoutMs?: number
 ): Promise<McpToolResult> {
   const pathForLog = path.startsWith("/") ? path : `/${path}`;
-  const baseUrl = normalizeBaseUrl(runtimeConfig.baseUrl ?? "https://ai.suqi.tech/ai");
+  const baseUrl = normalizeBaseUrl(runtimeConfig.baseUrl ?? "https://whateverai.ai/ai");
   const timeout = timeoutMs ?? runtimeConfig.timeout ?? 5000;
   const url = `${baseUrl}/openapi/v1${pathForLog}`;
 
@@ -386,7 +386,7 @@ const executeAgentTaskTool: ToolDefinition = {
     };
     inFlightByAgentKey.set(agentKey, reservation);
 
-    const baseUrl = normalizeBaseUrl(runtimeConfig.baseUrl ?? "https://ai.suqi.tech/ai");
+    const baseUrl = normalizeBaseUrl(runtimeConfig.baseUrl ?? "https://whateverai.ai/ai");
     const url = `${baseUrl}/openapi/v1/devices/execute`;
     const timeout = runtimeConfig.timeout ?? 30000;
 
@@ -741,7 +741,7 @@ const getTaskResultTool: ToolDefinition = {
     }
 
     const pollWindowMs = 10000;
-    const baseUrl = normalizeBaseUrl(runtimeConfig.baseUrl ?? "https://ai.suqi.tech/ai");
+    const baseUrl = normalizeBaseUrl(runtimeConfig.baseUrl ?? "https://whateverai.ai/ai");
     const url = `${baseUrl}/openapi/v1/devices/result/${normalizedTaskId}`;
 
     const headers: Record<string, string> = {

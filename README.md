@@ -208,7 +208,12 @@ Required call order:
 
 ## Changelog
 
-Current version: **v2026.4.1**
+Current version: **v2026.4.2**
+
+### v2026.4.2
+
+- Set default CloudPhone API base URL to `https://whateverai.ai/ai` in runtime, manifest defaults, and tests (aligned with product domain)
+- Synced package/plugin/doc version references to `v2026.4.2`
 
 ### v2026.4.1
 

@@ -85,7 +85,7 @@ function mockFetch(mode: "running_then_success" | "error" | "timeout") {
 }
 
 test("cloudphone_execute rejects concurrent task with AGENT_BUSY", async () => {
-  setConfig({ baseUrl: "https://ai.suqi.tech/ai", timeout: 1000 });
+  setConfig({ baseUrl: "https://whateverai.ai/ai", timeout: 1000 });
   globalThis.fetch = mockFetch("timeout");
   const executeTool = getTool("cloudphone_execute");
 
@@ -110,7 +110,7 @@ test("cloudphone_execute rejects concurrent task with AGENT_BUSY", async () => {
 });
 
 test("running result keeps lock until terminal status", async () => {
-  setConfig({ baseUrl: "https://ai.suqi.tech/ai", timeout: 1000 });
+  setConfig({ baseUrl: "https://whateverai.ai/ai", timeout: 1000 });
   globalThis.fetch = mockFetch("running_then_success");
   const executeTool = getTool("cloudphone_execute");
   const resultTool = getTool("cloudphone_task_result");
@@ -144,7 +144,7 @@ test("running result keeps lock until terminal status", async () => {
 
 for (const mode of ["running_then_success", "error"] as const) {
   test(`terminal result '${mode}' unlocks next execute`, async () => {
-    setConfig({ baseUrl: "https://ai.suqi.tech/ai", timeout: 1000 });
+    setConfig({ baseUrl: "https://whateverai.ai/ai", timeout: 1000 });
     globalThis.fetch = mockFetch(mode);
     const executeTool = getTool("cloudphone_execute");
     const resultTool = getTool("cloudphone_task_result");
@@ -199,7 +199,7 @@ for (const mode of ["running_then_success", "error"] as const) {
 }
 
 test("cloudphone_execute_and_wait auto chains first poll", async () => {
-  setConfig({ baseUrl: "https://ai.suqi.tech/ai", timeout: 1000 });
+  setConfig({ baseUrl: "https://whateverai.ai/ai", timeout: 1000 });
   globalThis.fetch = mockFetch("running_then_success");
   const chainTool = getTool("cloudphone_execute_and_wait");
 

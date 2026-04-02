@@ -208,7 +208,12 @@ user_device_id : number - 用户设备 ID（必填）
 
 ## 更新日志
 
-当前版本：**v2026.4.1**
+当前版本：**v2026.4.2**
+
+### v2026.4.2
+
+- 将默认 CloudPhone API 基址设为 `https://whateverai.ai/ai`（运行时、清单默认值与测试均已对齐产品域名）
+- 同步 package/plugin/doc 的版本标识到 `v2026.4.2`
 
 ### v2026.4.1
 
