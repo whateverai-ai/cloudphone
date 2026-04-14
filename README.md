@@ -220,13 +220,13 @@ Required call order:
 
 ## Changelog
 
-Current version: **v2026.4.4**
+Current version: **v2026.4.14**
 
-### v2026.4.4
+### v2026.4.14
 
 - Added optional plugin config `llmApiKey` and `llmBaseUrl` for default LLM credentials used by the cloud phone automation agent
 - Extended `cloudphone_execute` with optional `api_key` and `base_url` parameters to override plugin-level LLM settings per task
-- Synced package/plugin/doc version references to `v2026.4.4`
+- Synced package/plugin/doc version references to `v2026.4.14`
 
 ### v2026.4.3
 

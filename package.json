@@ -1,6 +1,6 @@
 {
   "name": "@whateverai/cloudphone",
-  "version": "2026.4.4",
+  "version": "2026.4.14",
   "license": "MIT",
   "description": "OpenClaw CloudPhone plugin that gives AI agents cloud phone automation via natural language instructions. Submit tasks to the backend AI Agent and stream results via SSE.",
   "main": "dist/index.js",
