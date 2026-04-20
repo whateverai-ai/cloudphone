@@ -96,6 +96,7 @@ Agent 不再需要直接控制 UI 坐标、管理截图或逐一调用 tap/swipe
 | `apikey` | string | 是 | — | Authorization 鉴权凭证（ApiKey） |
 | `llmApiKey` | string | 否 | — | 云手机自动化所用默认 LLM 提供商 API Key（敏感；不需要可不填）。若使用 Z.AI，可从 [Z.AI API 文档介绍页](https://docs.z.ai/api-reference/introduction) 获取。 |
 | `llmBaseUrl` | string | 否 | — | 云手机自动化所用默认 LLM 提供商 Base URL。Z.AI 示例：`https://api.z.ai/api/paas/v4`。 |
+| `maxSteps` | integer | 否 | 50 | Agent 单任务最大步骤数（1-200），作为 `cloudphone_execute` 未传入 `max_steps` 时的默认值 |
 
 > `apikey` 请在 [https://whateverai.ai](https://whateverai.ai) 登录或注册后，在账户/设置中获取。
 
@@ -170,6 +171,7 @@ session_id     : string  - 可选会话 ID，用于流式内容持久化
 lang           : string  - 语言提示："cn"（默认）或 "en"
 api_key        : string  - 可选 LLM 提供商 API Key；若传入则覆盖插件级 llmApiKey
 base_url       : string  - 可选 LLM 提供商 Base URL；若传入则覆盖插件级 llmBaseUrl
+max_steps      : integer - Agent 单任务最大步骤数（1-200）；省略时回退到插件级 maxSteps，再回退到 50
 ```
 
 **`cloudphone_execute_and_wait`** 使用相同参数定义（同一套 schema）。
@@ -250,7 +252,14 @@ device_id : string - 设备唯一 ID（必填）
 
 ## 更新日志
 
-当前版本：**v2026.4.14001**
+当前版本：**v2026.4.20**
+
+### v2026.4.20
+
+- 为 `cloudphone_execute`（及 `cloudphone_execute_and_wait`）新增可选参数 `max_steps`，用于限制后端 Agent 单任务最大动作步数（取值范围 1-200）
+- 新增可选插件配置项 `maxSteps`（integer，1-200，默认 50），当调用方未传入 `max_steps` 时作为默认值
+- `cloudphone_execute` 现在会始终以"调用入参 → 插件配置 → 默认 50"的优先级解析后向后端透传 `max_steps`，并对每层进行整数化与范围裁剪
+- 同步 package/plugin/doc 的版本标识到 `v2026.4.20`
 
 ### v2026.4.14001
 

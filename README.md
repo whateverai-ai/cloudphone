@@ -96,6 +96,7 @@ The agent no longer needs to directly control UI coordinates, manage screenshots
 | `apikey` | string | Yes | - | Authorization credential (ApiKey) |
 | `llmApiKey` | string | No | - | Default LLM provider API key for cloud phone automation (sensitive; omit if not needed). For Z.AI, create it from [Z.AI API Introduction](https://docs.z.ai/api-reference/introduction). |
 | `llmBaseUrl` | string | No | - | Default LLM provider base URL for cloud phone automation. Example for Z.AI: `https://api.z.ai/api/paas/v4`. |
+| `maxSteps` | integer | No | 50 | Default maximum agent steps (1-200) used when the caller of `cloudphone_execute` does not provide `max_steps`. |
 
 > Obtain your API Key by logging in or signing up at [https://whateverai.ai](https://whateverai.ai), then find it in your account/settings.
 
@@ -170,6 +171,7 @@ session_id     : string  - Optional session ID for streaming persistence
 lang           : string  - Language hint: "cn" (default) or "en"
 api_key        : string  - Optional LLM provider API key; overrides plugin-level llmApiKey when set
 base_url       : string  - Optional LLM provider base URL; overrides plugin-level llmBaseUrl when set
+max_steps      : integer - Maximum agent steps (1-200). Falls back to plugin-level maxSteps, then 50
 ```
 
 The same parameters apply to **`cloudphone_execute_and_wait`** (it uses the same schema).
@@ -250,7 +252,14 @@ Required call order:
 
 ## Changelog
 
-Current version: **v2026.4.14001**
+Current version: **v2026.4.20**
+
+### v2026.4.20
+
+- Added optional `max_steps` parameter to `cloudphone_execute` (and `cloudphone_execute_and_wait`) for capping the backend agent's maximum action steps per task (range 1-200)
+- Added optional plugin config `maxSteps` (integer, 1-200, default 50) used as the fallback when the caller omits `max_steps`
+- `cloudphone_execute` now always forwards the resolved `max_steps` value to the backend using the priority chain: caller input → plugin config → default 50, with automatic integer flooring and range clamping
+- Synced package/plugin/doc version references to `v2026.4.20`
 
 ### v2026.4.14001
 

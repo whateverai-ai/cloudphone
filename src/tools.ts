@@ -17,7 +17,15 @@ export interface CloudphonePluginConfig {
   timeout?: number;
   llmApiKey?: string;
   llmBaseUrl?: string;
+  // 云手机 Agent 单任务最大步骤数，未在调用入参中传入 max_steps 时使用
+  maxSteps?: number;
 }
+
+// max_steps 允许的取值范围（与 openclaw.plugin.json configSchema 保持一致）
+const MAX_STEPS_MIN = 1;
+const MAX_STEPS_MAX = 200;
+// 调用方与插件配置均未提供 max_steps 时使用的硬编码兜底值
+const MAX_STEPS_DEFAULT = 50;
 
 /** MCP content items (text | image), following MCP + OpenClaw conventions. */
 export type McpContentItem =
@@ -85,6 +93,45 @@ function normalizeTaskId(value: unknown): number | null {
     return null;
   }
   return parsed;
+}
+
+/**
+ * 规范化 max_steps 取值：
+ * - 将任意输入转为整数并裁剪到 [MAX_STEPS_MIN, MAX_STEPS_MAX] 区间
+ * - 非法值（非有限数、NaN、字符串无法解析等）返回 null，交由上层继续 fallback
+ */
+function normalizeMaxSteps(value: unknown): number | null {
+  if (value === undefined || value === null || value === "") {
+    return null;
+  }
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return null;
+  }
+  const floored = Math.floor(parsed);
+  if (floored < MAX_STEPS_MIN) {
+    return MAX_STEPS_MIN;
+  }
+  if (floored > MAX_STEPS_MAX) {
+    return MAX_STEPS_MAX;
+  }
+  return floored;
+}
+
+/**
+ * 按优先级解析最终生效的 max_steps：调用入参 > 插件配置 > 硬编码默认值 50。
+ * 每一层若不合法都会自动下沉，确保最终返回值始终在合法区间内。
+ */
+function resolveEffectiveMaxSteps(paramValue: unknown): number {
+  const fromParams = normalizeMaxSteps(paramValue);
+  if (fromParams !== null) {
+    return fromParams;
+  }
+  const fromConfig = normalizeMaxSteps(runtimeConfig.maxSteps);
+  if (fromConfig !== null) {
+    return fromConfig;
+  }
+  return MAX_STEPS_DEFAULT;
 }
 
 function releaseInFlightByTask(taskId: number): void {
@@ -483,6 +530,16 @@ const executeAgentTaskTool: ToolDefinition = {
         type: "string",
         description: "Optional LLM provider base URL for the cloud phone automation agent. Overrides the plugin-level llmBaseUrl config when provided.",
       },
+      max_steps: {
+        type: "integer",
+        minimum: MAX_STEPS_MIN,
+        maximum: MAX_STEPS_MAX,
+        description:
+          "Maximum number of steps the cloud phone Agent may execute for this task (range 1-200). " +
+          "Use a larger value for complex multi-step flows (e.g. open app → search → tap result → perform action), " +
+          "and a smaller value for simple single-step tasks to fail fast. " +
+          "When omitted, the plugin-level maxSteps config is used, falling back to 50.",
+      },
     },
     required: ["instruction"],
   },
@@ -523,6 +580,9 @@ const executeAgentTaskTool: ToolDefinition = {
     const effectiveLlmBaseUrl = (params.base_url as string | undefined) ?? runtimeConfig.llmBaseUrl;
     if (effectiveLlmApiKey) body.api_key = effectiveLlmApiKey;
     if (effectiveLlmBaseUrl) body.base_url = effectiveLlmBaseUrl;
+    // max_steps 始终透传：按"调用入参 > 插件配置 > 默认 50"的优先级解析
+    const effectiveMaxSteps = resolveEffectiveMaxSteps(params.max_steps);
+    body.max_steps = effectiveMaxSteps;
 
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
@@ -533,7 +593,7 @@ const executeAgentTaskTool: ToolDefinition = {
 
     const started = Date.now();
     console.log(
-      `${LOG_PREFIX} cloudphone_execute start device_id=${String(params.device_id ?? "")} instruction=${summarizeTextForLog(String(params.instruction ?? ""), 80)}`
+      `${LOG_PREFIX} cloudphone_execute start device_id=${String(params.device_id ?? "")} max_steps=${effectiveMaxSteps} instruction=${summarizeTextForLog(String(params.instruction ?? ""), 80)}`
     );
 
     let timer: ReturnType<typeof setTimeout> | undefined;

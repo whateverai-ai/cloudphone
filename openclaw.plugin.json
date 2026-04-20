@@ -1,7 +1,7 @@
 {
   "id": "cloudphone",
   "name": "CloudPhone Plugin",
-  "version": "2026.4.14001",
+  "version": "2026.4.20",
   "description": "OpenClaw CloudPhone plugin that exposes CloudPhone AI Agent capabilities as agent tools. Submit natural language instructions for cloud phone automation and stream task results via SSE.",
   "configSchema": {
     "type": "object",
@@ -28,6 +28,13 @@
       "llmBaseUrl": {
         "type": "string",
         "description": "Default LLM provider base URL for cloud phone automation"
+      },
+      "maxSteps": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 200,
+        "description": "Maximum number of steps the cloud phone Agent may execute per task. Used when the caller does not provide max_steps.",
+        "default": 50
       }
     }
   },
@@ -52,6 +59,10 @@
     "llmBaseUrl": {
       "label": "LLM Base URL",
       "placeholder": "https://api.openai.com/v1"
+    },
+    "maxSteps": {
+      "label": "Max Steps",
+      "placeholder": "50"
     }
   },
   "skills": [
