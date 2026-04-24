@@ -3,3 +3,6 @@ dist/
 .cursor/
 docs/
 openspec/
+.idea/
+src/tools.serial-gating.test.ts
+/src/tools.precision.test.ts

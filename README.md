@@ -116,8 +116,9 @@ After the plugin is installed, the agent automatically gets the following tools.
 |------|------|
 | `cloudphone_get_user_profile` | Get the current user's basic information |
 | `cloudphone_list_devices` | List cloud phone devices with pagination, keyword search, and status filters |
-| `cloudphone_get_device_info` | Get detailed information for a specific device |
+| `cloudphone_get_device_info` | Get detailed information for a specific device by `device_id` |
 | `cloudphone_get_device_screenshot_url` | Get the latest screenshot URL by `device_id` (default-enabled; user-trigger only) |
+| `cloudphone_create_share_link` | Create a streaming share link by `device_id` (default-enabled; user-trigger only) |
 
 ### AI Agent task execution
 
@@ -205,7 +206,7 @@ size    : integer - Items per page, default 20
 ### `cloudphone_get_device_info`
 
 ```text
-user_device_id : number - User device ID (required)
+device_id : string - Device unique ID (32-char hex opaque identifier, required)
 ```
 
 ### `cloudphone_get_device_screenshot_url`
@@ -218,6 +219,17 @@ Notes:
 - This tool is available by default after plugin installation (no extra whitelist enablement required).
 - Call this tool only when the user explicitly requests a screenshot URL.
 - The returned `screenshot_url` is passed through as-is from upstream and should be treated as a sensitive temporary credential URL.
+
+### `cloudphone_create_share_link`
+
+```text
+device_id : string - Device unique ID (32-char hex opaque identifier, required)
+```
+
+Notes:
+- This tool is available by default after plugin installation (no extra whitelist enablement required).
+- Call this tool only when the user explicitly requests to share a device or generate a share link; do not trigger autonomously.
+- The returned `share_url` is a signed credential URL and may have a limited lifetime; treat it as sensitive and do not forward it beyond the user's explicit request.
 
 ## FAQ
 
@@ -252,7 +264,16 @@ Required call order:
 
 ## Changelog
 
-Current version: **v2026.4.20**
+Current version: **v2026.4.24**
+
+### v2026.4.24
+
+- Added `cloudphone_create_share_link` to generate a streaming share link for a specific cloud phone device by `device_id` (default-enabled; user-trigger only; the returned `share_url` is a sensitive signed credential URL)
+- Switched `cloudphone_create_share_link` and `cloudphone_get_device_info` inputs from the long-integer `user_device_id` to the 32-char opaque hex `device_id`, aligning with `cloudphone_get_device_screenshot_url` and avoiding LLM long-integer precision loss on tool-call payloads
+- Preserved long-integer precision across all API responses by replacing native `JSON.parse` with `json-bigint` (`storeAsString: true`) in `apiRequest`, keeping 19-digit snowflake IDs (for example `user_device_id`, `id`, `fk_viz_tn_machine_id`) intact for the agent
+- Extended the new parser to `cloudphone_execute` / `cloudphone_get_device_screenshot_url` inline `fetch` branches and to SSE event parsing (`agent_thinking`, `task_result`, `error`) in `cloudphone_task_result`, and hardened `normalizeTaskId` to accept and validate string `task_id` inputs
+- Added runtime dependency `json-bigint` (and dev type `@types/json-bigint`)
+- Synced package/plugin/doc version references to `v2026.4.24`
 
 ### v2026.4.20
 

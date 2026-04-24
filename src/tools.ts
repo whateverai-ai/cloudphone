@@ -10,6 +10,13 @@
  * Docs: https://docs.openclaw.ai/plugins/agent-tools
  */
 
+// 使用 json-bigint 替代原生 JSON.parse，当 JSON 中出现超过 Number.MAX_SAFE_INTEGER 的
+// 整数字面量时，该字段会被解析为字符串而非失真的 number，从而避免 19 位雪花 ID 的精度丢失。
+// 安全整数与浮点数仍保持 number，确保既有 typeof === "number" 逻辑零回归。
+// 规则详见：openspec change `preserve-long-precision-in-api-response`。
+import JSONBig from "json-bigint";
+const JSON_BIG_PARSER = JSONBig({ storeAsString: true });
+
 /** Plugin config type, aligned with openclaw.plugin.json configSchema. */
 export interface CloudphonePluginConfig {
   baseUrl?: string;
@@ -81,6 +88,9 @@ function getAgentKeyFromParams(params: Record<string, unknown>): string {
   if (typeof params.device_id === "string" && params.device_id.trim()) {
     return `device:${params.device_id.trim()}`;
   }
+  // TODO(change: drop-json-bigint-and-trim-user-device-id-from-list / task 6.1)
+  // `user_device_id` 兜底分支保留仅为向后兼容 cloudphone_execute 的旧入参；
+  // 当 `cloudphone_execute` 的 user_device_id 兼容字段移除后，此分支也应一并清理。
   if (params.user_device_id !== undefined && params.user_device_id !== null) {
     return `user_device:${String(params.user_device_id)}`;
   }
@@ -88,6 +98,36 @@ function getAgentKeyFromParams(params: Record<string, unknown>): string {
 }
 
 function normalizeTaskId(value: unknown): number | null {
+  // 防御性适配：json-bigint 可能把 long 字段解析为 string，
+  // 这里兼容 string / number 两种输入；超过安全整数的字符串直接拒绝并告警，
+  // 避免 Number(string) 静默丢精度后继续作为 taskId 使用。
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return null;
+    }
+    // 仅允许纯十进制正整数字符串
+    if (!/^[0-9]+$/.test(trimmed)) {
+      const parsedLoose = Number(trimmed);
+      if (!Number.isFinite(parsedLoose) || parsedLoose <= 0) {
+        return null;
+      }
+      return parsedLoose;
+    }
+    // 超过安全整数的 string 拒绝（当前 taskId 为普通 int，正常不触发）
+    if (trimmed.length >= 16) {
+      console.warn(
+        `${LOG_PREFIX} normalizeTaskId rejected oversized numeric string: ${trimmed}`
+      );
+      return null;
+    }
+    const parsedFromStr = Number(trimmed);
+    if (!Number.isFinite(parsedFromStr) || parsedFromStr <= 0) {
+      return null;
+    }
+    return parsedFromStr;
+  }
+
   const parsed = Number(value);
   if (!Number.isFinite(parsed) || parsed <= 0) {
     return null;
@@ -278,7 +318,21 @@ async function apiRequest(
       });
     }
 
-    const body = (await response.json()) as Record<string, unknown>;
+    // 使用 json-bigint 解析，避免 long 字段在 Number 化过程中丢精度（19 位雪花 ID）
+    const rawText = await response.text();
+    let body: Record<string, unknown>;
+    try {
+      body = JSON_BIG_PARSER.parse(rawText || "{}") as Record<string, unknown>;
+    } catch (parseErr) {
+      const parseMsg = parseErr instanceof Error ? parseErr.message : String(parseErr);
+      console.error(
+        `${LOG_PREFIX} apiRequest ${method} ${pathForLog} invalid JSON response: ${parseMsg}`
+      );
+      return toJsonText({
+        ok: false,
+        message: `Invalid JSON response: ${parseMsg}`,
+      });
+    }
 
     if (typeof body === "object" && body !== null && ("code" in body || "success" in body)) {
       if (isSuccessfulApiResponse(body)) {
@@ -351,18 +405,35 @@ const listDevicesTool: ToolDefinition = {
 
 const getDeviceInfoTool: ToolDefinition = {
   name: "cloudphone_get_device_info",
-  description: "Get details for a specific cloud phone device.",
+  description:
+    "Get details for a specific cloud phone device by device_id. " +
+    "device_id is a 32-character opaque hex identifier (not a decimal number), " +
+    "so there is no long-integer precision concern at the LLM / tool-call layer.",
   parameters: {
     type: "object",
     properties: {
-      user_device_id: {
-        type: "number",
-        description: "User device ID",
+      device_id: {
+        type: "string",
+        description:
+          "Device unique ID (32-char hex opaque identifier). " +
+          "Typically obtained from cloudphone_list_devices response field `device_id`.",
       },
     },
-    required: ["user_device_id"],
+    required: ["device_id"],
   },
-  execute: async (_id, params) => apiRequest("POST", "/devices/info", params),
+  execute: async (_id, params) => {
+    // 入参归一：去空白并拒绝空字符串，避免向后端发送无效键查询
+    const deviceId = String(params.device_id ?? "").trim();
+    if (!deviceId) {
+      return toJsonText({
+        ok: false,
+        code: "INVALID_PARAMS",
+        message: "device_id is required",
+      });
+    }
+    // 请求体字段名与入参保持一致（snake_case），不做字段名/数值转换
+    return apiRequest("POST", "/devices/info", { device_id: deviceId });
+  },
 };
 
 const getDeviceScreenshotUrlTool: ToolDefinition = {
@@ -430,7 +501,21 @@ const getDeviceScreenshotUrlTool: ToolDefinition = {
         });
       }
 
-      const body = (await response.json()) as Record<string, unknown>;
+      // 使用共享 json-bigint 解析器保持全插件解析一致性（见 openspec change
+      // preserve-long-precision-in-api-response）；该工具目前仅消费 screenshot_url 字符串字段，
+      // 但统一解析器避免未来后端新增 long 字段时再回来补刀。
+      const respText = await response.text();
+      let body: Record<string, unknown>;
+      try {
+        body = JSON_BIG_PARSER.parse(respText || "{}") as Record<string, unknown>;
+      } catch (parseErr) {
+        const parseMsg = parseErr instanceof Error ? parseErr.message : String(parseErr);
+        return toJsonText({
+          ok: false,
+          code: "INVALID_UPSTREAM_PAYLOAD",
+          message: `Invalid JSON response: ${parseMsg}`,
+        });
+      }
       if (!isSuccessfulApiResponse(body)) {
         return toJsonText({
           ok: false,
@@ -477,6 +562,110 @@ const getDeviceScreenshotUrlTool: ToolDefinition = {
   },
 };
 
+// ─── Device share link ────────────────────────────────────────────────────
+
+/**
+ * 根据 device_id 生成云手机串流分享链接。
+ *
+ * 行为约束（与 spec device-share-link 对齐）：
+ * - 仅在用户显式请求"生成/获取分享链接"时调用，禁止 Agent 自主触发。
+ * - 参数 device_id 为 32 字符 hex 字符串（不透明 ID），不存在长整型精度问题。
+ * - 工具内部不做字段名转换（snake_case 原样透传），不做数值转换。
+ * - 上游 data 为字符串 URL，工具层提取为 share_url 并返回结构化 JSON。
+ * - 日志使用 safeUrlForLog 脱敏，避免泄露签名查询参数。
+ */
+const createShareLinkTool: ToolDefinition = {
+  name: "cloudphone_create_share_link",
+  description:
+    "Create a streaming share link for a specific cloud phone device by device_id. " +
+    "This tool is enabled by default. Invoke it ONLY when the user explicitly requests to share " +
+    "a device or generate a share link. Do NOT call this tool autonomously for non-explicit requests. " +
+    "device_id is a 32-character opaque hex identifier (not a decimal number), " +
+    "so there is no long-integer precision concern at the LLM / tool-call layer. " +
+    "The returned share_url is a sensitive signed credential URL and may have a limited lifetime; " +
+    "do not forward it beyond the user's explicit request.",
+  parameters: {
+    type: "object",
+    properties: {
+      device_id: {
+        type: "string",
+        description:
+          "Device unique ID (32-char hex opaque identifier). " +
+          "Typically obtained from cloudphone_list_devices response field `device_id`.",
+      },
+    },
+    required: ["device_id"],
+  },
+  execute: async (_id, params) => {
+    // 入参归一：去空白并拒绝空字符串，避免向后端发送无效键查询
+    const deviceId = String(params.device_id ?? "").trim();
+    if (!deviceId) {
+      return toJsonText({
+        ok: false,
+        code: "INVALID_PARAMS",
+        message: "device_id is required",
+      });
+    }
+
+    // 复用现有 apiRequest：URL 拼接 / Authorization / 超时 / 统一成功失败判定
+    // 请求体字段名与入参保持一致（snake_case），不做字段名转换
+    const apiResult = await apiRequest(
+      "POST",
+      "/devices/create/share/link",
+      { device_id: deviceId }
+    );
+
+    // apiRequest 的返回语义：
+    //   业务成功 → toJsonText(body.data)；此接口 body.data 为字符串 URL，
+    //              因此 text = JSON.stringify("https://..."), JSON.parse 后得到字符串
+    //   业务/HTTP 失败 → toJsonText({ ok:false, code, message, ... })
+    const rawText =
+      apiResult.content[0]?.type === "text" ? apiResult.content[0].text : "";
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(rawText);
+    } catch {
+      return toJsonText({
+        ok: false,
+        code: "INVALID_UPSTREAM_PAYLOAD",
+        message: "Upstream response is not valid JSON",
+      });
+    }
+
+    // 成功路径：parsed 为非空字符串 → 作为 share_url 原样返回（不做裁剪/重组）
+    if (typeof parsed === "string" && parsed.trim() !== "") {
+      const shareUrl = parsed;
+      console.log(
+        `${LOG_PREFIX} share_link ready device_id=${deviceId} safe_url=${safeUrlForLog(
+          shareUrl
+        )}`
+      );
+      return toJsonText({
+        ok: true,
+        device_id: deviceId,
+        share_url: shareUrl,
+      });
+    }
+
+    // 失败路径：apiRequest 已规范化为 { ok:false, ... }，原样透传
+    if (
+      parsed &&
+      typeof parsed === "object" &&
+      (parsed as Record<string, unknown>).ok === false
+    ) {
+      return toJsonText(parsed);
+    }
+
+    // 异常形状：data 为对象/空/非字符串等非预期情况，禁止伪造 share_url
+    return toJsonText({
+      ok: false,
+      code: "INVALID_UPSTREAM_PAYLOAD",
+      message: "Upstream response missing share_url",
+      upstream: parsed,
+    });
+  },
+};
+
 // ─── Agent task execution ─────────────────────────────────────────────────
 
 /**
@@ -509,6 +698,10 @@ const executeAgentTaskTool: ToolDefinition = {
         type: "string",
         description: "Device unique ID (recommended). Takes priority over user_device_id when both are provided.",
       },
+      // TODO(change: 6.1) cloudphone_execute 的 user_device_id 兼容字段保留仅为避免旧调用方回归；
+      // 存在潜在长整型精度风险（LLM 将 19 位 snowflake 作为 number 下发时会丢精度）。
+      // 后续新 change 里优先移除该字段，或改为与 cloudphone_create_share_link / cloudphone_get_device_info
+      // 一致切换到 device_id。
       user_device_id: {
         type: "number",
         description: "User device ID (compatibility field). Use device_id when available.",
@@ -625,7 +818,20 @@ const executeAgentTaskTool: ToolDefinition = {
         });
       }
 
-      const resp = (await response.json()) as Record<string, unknown>;
+      // 使用共享 json-bigint 解析器保持全插件解析一致性；当前仅消费 taskId（小 int）与
+      // sessionId（string），但统一解析器避免未来 long 字段时再回来补刀。
+      const respText = await response.text();
+      let resp: Record<string, unknown>;
+      try {
+        resp = JSON_BIG_PARSER.parse(respText || "{}") as Record<string, unknown>;
+      } catch (parseErr) {
+        inFlightByAgentKey.delete(agentKey);
+        const parseMsg = parseErr instanceof Error ? parseErr.message : String(parseErr);
+        return toJsonText({
+          ok: false,
+          message: `Invalid JSON response: ${parseMsg}`,
+        });
+      }
 
       if (resp.status === "fail") {
         inFlightByAgentKey.delete(agentKey);
@@ -817,7 +1023,7 @@ async function consumeSseStream(
 
           if (evtName === "agent_thinking") {
             try {
-              const parsed = JSON.parse(evtData) as Record<string, unknown>;
+              const parsed = JSON_BIG_PARSER.parse(evtData) as Record<string, unknown>;
               // agent_thinking may carry an error sub-event
               if (parsed.event_type === "error" && parsed.error) {
                 const errObj = parsed.error as Record<string, unknown>;
@@ -835,7 +1041,7 @@ async function consumeSseStream(
             }
           } else if (evtName === "task_result") {
             try {
-              const parsed = JSON.parse(evtData) as Record<string, unknown>;
+              const parsed = JSON_BIG_PARSER.parse(evtData) as Record<string, unknown>;
               taskResult = parsed;
               finalStatus =
                 typeof parsed.status === "string" ? parsed.status : "success";
@@ -853,7 +1059,7 @@ async function consumeSseStream(
             break;
           } else if (evtName === "error") {
             try {
-              const parsed = JSON.parse(evtData) as Record<string, unknown>;
+              const parsed = JSON_BIG_PARSER.parse(evtData) as Record<string, unknown>;
               errorMessage = String(parsed.message ?? parsed.error ?? evtData);
             } catch {
               errorMessage = evtData;
@@ -920,8 +1126,9 @@ const getTaskResultTool: ToolDefinition = {
     required: ["task_id"],
   },
   execute: async (_id, params) => {
-    const taskId = Number(params.task_id);
-    const normalizedTaskId = normalizeTaskId(taskId);
+    // 直接交给 normalizeTaskId 处理，它已兼容 string | number 两种输入，
+    // 避免前置 Number(string-long) 调用引入精度丢失。
+    const normalizedTaskId = normalizeTaskId(params.task_id);
     if (!normalizedTaskId) {
       return toJsonText({ ok: false, status: "error", message: "Invalid task_id" });
     }
@@ -1064,6 +1271,7 @@ export const tools: ToolDefinition[] = [
   listDevicesTool,
   getDeviceInfoTool,
   getDeviceScreenshotUrlTool,
+  createShareLinkTool,
   executeAgentTaskTool,
   executeAndPollTool,
   getTaskResultTool,

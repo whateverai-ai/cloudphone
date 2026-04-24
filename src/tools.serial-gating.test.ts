@@ -44,17 +44,21 @@ function mockFetch(mode: "running_then_success" | "error" | "timeout") {
           : input.url;
     if (url.includes("/devices/execute")) {
       taskSeq += 1;
+      const payload = {
+        status: "ok",
+        taskId: taskSeq,
+        sessionId: "s1",
+        message: "accepted",
+      };
       return {
         ok: true,
         status: 200,
         statusText: "OK",
         async json() {
-          return {
-            status: "ok",
-            taskId: taskSeq,
-            sessionId: "s1",
-            message: "accepted",
-          };
+          return payload;
+        },
+        async text() {
+          return JSON.stringify(payload);
         },
       } as unknown as Response;
     }
@@ -225,17 +229,21 @@ test("cloudphone_get_device_screenshot_url returns original URL and sanitized lo
   let sentBody: JsonRecord = {};
   globalThis.fetch = (async (_input: string | URL | Request, init?: RequestInit) => {
     sentBody = JSON.parse(String(init?.body ?? "{}")) as JsonRecord;
+    const payload = {
+      code: 1,
+      data: {
+        screenshot_url: screenshotUrl,
+      },
+    };
     return {
       ok: true,
       status: 200,
       statusText: "OK",
       async json() {
-        return {
-          code: 1,
-          data: {
-            screenshot_url: screenshotUrl,
-          },
-        };
+        return payload;
+      },
+      async text() {
+        return JSON.stringify(payload);
       },
     } as unknown as Response;
   }) as typeof fetch;
@@ -271,15 +279,19 @@ test("cloudphone_get_device_screenshot_url returns machine-readable upstream err
   const screenshotTool = getTool("cloudphone_get_device_screenshot_url");
 
   globalThis.fetch = (async () => {
+    const payload = {
+      code: 0,
+      message: "snapshot failed",
+    };
     return {
       ok: true,
       status: 200,
       statusText: "OK",
       async json() {
-        return {
-          code: 0,
-          message: "snapshot failed",
-        };
+        return payload;
+      },
+      async text() {
+        return JSON.stringify(payload);
       },
     } as unknown as Response;
   }) as typeof fetch;

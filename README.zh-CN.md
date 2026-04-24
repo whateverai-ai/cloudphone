@@ -116,8 +116,9 @@ Agent 不再需要直接控制 UI 坐标、管理截图或逐一调用 tap/swipe
 |------|------|
 | `cloudphone_get_user_profile` | 获取当前用户基本信息 |
 | `cloudphone_list_devices` | 获取云手机设备列表，支持分页、关键字搜索和状态筛选 |
-| `cloudphone_get_device_info` | 获取指定设备的详细信息 |
+| `cloudphone_get_device_info` | 按 `device_id` 获取指定设备的详细信息 |
 | `cloudphone_get_device_screenshot_url` | 按 `device_id` 获取最新截图 URL（默认可用；仅用户触发） |
+| `cloudphone_create_share_link` | 按 `device_id` 生成云手机串流分享链接（默认可用；仅用户触发） |
 
 ### AI Agent 任务执行
 
@@ -205,7 +206,7 @@ size    : integer - 每页条数，默认 20
 ### `cloudphone_get_device_info`
 
 ```text
-user_device_id : number - 用户设备 ID（必填）
+device_id : string - 设备唯一 ID（32 位十六进制不透明标识，必填）
 ```
 
 ### `cloudphone_get_device_screenshot_url`
@@ -218,6 +219,17 @@ device_id : string - 设备唯一 ID（必填）
 - 插件安装后该工具默认可用，无需额外白名单开启。
 - 仅在用户明确要求获取截图 URL 时调用，禁止自主触发。
 - 返回的 `screenshot_url` 为上游原样透传，应视为敏感的临时凭证链接。
+
+### `cloudphone_create_share_link`
+
+```text
+device_id : string - 设备唯一 ID（32 位十六进制不透明标识，必填）
+```
+
+说明：
+- 插件安装后该工具默认可用，无需额外白名单开启。
+- 仅在用户明确要求"生成/获取分享链接"时调用，禁止 Agent 自主触发。
+- 返回的 `share_url` 为带签名的敏感临时凭证，可能具有有限时效，不应在用户明确授权范围外二次转发。
 
 ## 常见问题
 
@@ -252,7 +264,16 @@ device_id : string - 设备唯一 ID（必填）
 
 ## 更新日志
 
-当前版本：**v2026.4.20**
+当前版本：**v2026.4.24**
+
+### v2026.4.24
+
+- 新增 `cloudphone_create_share_link` 工具，按 `device_id` 生成云手机串流分享链接（默认可用，仅用户触发；返回的 `share_url` 为带签名的敏感临时凭证）
+- 将 `cloudphone_create_share_link` 与 `cloudphone_get_device_info` 的必填入参从长整型 `user_device_id` 切换为 32 位十六进制不透明 `device_id`，与 `cloudphone_get_device_screenshot_url` 对齐，规避 LLM 复写 19 位长整数时产生的精度丢失问题
+- 在 `apiRequest` 中以 `json-bigint`（`storeAsString: true`）替换原生 `JSON.parse`，让所有 API 响应中的超长整数字段（如 `user_device_id`、`id`、`fk_viz_tn_machine_id` 等 19 位雪花 ID）以字符串形式完整透传给 Agent，避免响应链路精度丢失
+- 同步把新解析器应用到 `cloudphone_execute` / `cloudphone_get_device_screenshot_url` 的自写 `fetch` 分支，以及 `cloudphone_task_result` 的 SSE 事件解析（`agent_thinking`、`task_result`、`error`）；并对 `normalizeTaskId` 增加对字符串 `task_id` 的容错与校验
+- 新增运行时依赖 `json-bigint`（及开发依赖 `@types/json-bigint`）
+- 同步 package/plugin/doc 的版本标识到 `v2026.4.24`
 
 ### v2026.4.20
 
